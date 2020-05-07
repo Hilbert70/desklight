@@ -11,7 +11,7 @@ Button::Button(const int pin) : m_pin(pin)
 void Button::init()
 {
 
-  pinMode(m_pin, INPUT);
+  pinMode(m_pin, INPUT_PULLUP);
   // set begin state
   m_lastButtonState = read();
 }

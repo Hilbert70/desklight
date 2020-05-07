@@ -1,16 +1,18 @@
-
-
 // Include Libraries
-#include "Arduino.h"
-#include "Encoder.h"
-#include "Button.h"
+#include <Arduino.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <Wire.h>
+#include "Button.h"
+#include <ErriezRotaryFullStep.h>
 
-// Pin Definitions
-#define ROTARYENCI_PIN_CLK	3
-#define ROTARYENCI_PIN_D	2
-#define ROTARYENCI_PIN_S1	4
+#define PIN_A   D5 //ky-040 clk pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
+#define PIN_B   D6 //ky-040 dt  pin,             add 100nF/0.1uF capacitors between pin & ground!!!
+#define BUTTON  D7 //ky-040 sw  pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
+
+int16_t position = 0;
+
+RotaryFullStep encoder(PIN_A, PIN_B);
+Button rotaryButton(BUTTON);
 
 // number of elements in the bar, for testing just 3
 #define MAXBAR 3
@@ -21,8 +23,6 @@
 // object initialization
 // called this way, it uses the default address 0x40
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
-Encoder rotaryEncI(ROTARYENCI_PIN_D,ROTARYENCI_PIN_CLK);
-Button rotaryEncIButton(ROTARYENCI_PIN_S1);
 
 // 0 dimmer status
 // 1 bar length, minimum = 1
@@ -39,13 +39,14 @@ void setup()
 {
     // Setup Serial which is useful for debugging
     // Use the Serial Monitor to view printed messages
-    Serial.begin(9600);
+
+    encoder.setSensitivity(125); 
+    rotaryButton.init();
+
+    Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
     Serial.println("start");
-    
-    rotaryEncIButton.init();
-    pinMode(ROTARYENCI_PIN_S1, INPUT_PULLUP);
-
+   
     pwm.begin();
     // In theory the internal oscillator is 25MHz but it really isn't
     // that precise. You can 'calibrate' by tweaking this number till
@@ -58,54 +59,66 @@ void setup()
     // out for this!
     //Wire.setClock(400000);
 
-    rotaryEncI.write(status[0]*4);
+    //encoder.setPosition(status[0]);
 }
 long rotaryEncOldPosition = 0;
-
+long rotaryEncNewPosition = 0;
 // Main logic of your circuit. It defines the interaction between the components you selected. After setup, it runs over and over again, in an eternal loop.
 void loop() 
 {
-  long rotaryEncINewPosition = rotaryEncI.read();
-  long rotaryEncNewPosition = rotaryEncINewPosition/4;  // save the origial one 
-  bool rotaryEncIButtonVal = rotaryEncIButton.onPress();
+  long rotaryEncINewPosition = encoder.read(); //rotaryEncI.read();
+  //long rotaryEncNewPosition; // = rotaryEncINewPosition;  // save the origial one 
+  bool rotaryEncIButtonVal = rotaryButton.onPress();
 
-  
+  //Serial.print("Position: ");
+  //Serial.println(rotaryEncINewPosition);
+  if (rotaryEncINewPosition == 0) {
+      // no change
+  } else if (abs(rotaryEncINewPosition) >= 2) {
+    rotaryEncNewPosition += rotaryEncINewPosition * 2;
+  } else {
+    rotaryEncNewPosition += rotaryEncINewPosition;
+  }
+
+
   if (rotaryEncIButtonVal) {
         menu = (menu+1) % MAXMENU;
         time0 = millis();
-        rotaryEncI.write(status[menu]*4);
+        //rotaryEncI.setPosition(status[menu]*4);
         rotaryEncNewPosition = status[menu];
+        Serial.print(F("\tmenu: "));
+        Serial.println(menu);
   }
   
   switch (menu){
     case 0: // just dim
         if (rotaryEncNewPosition < 0) {
             rotaryEncNewPosition = 0;
-            rotaryEncI.write(0);
+            //encoder.setPosition(0);
         }
         if (rotaryEncNewPosition > MAXLIGHT) {
             rotaryEncNewPosition = MAXLIGHT;
-            rotaryEncI.write(4*MAXLIGHT);
+            //encoder.setPosition(MAXLIGHT);
         }
         break;
     case 1: // start
         if (rotaryEncNewPosition < 0) {
             rotaryEncNewPosition = 0;
-            rotaryEncI.write(0);
+            //encoder.setPosition(0);
         }
         if (rotaryEncNewPosition > MAXBAR-1) {
             rotaryEncNewPosition = MAXBAR-1;
-            rotaryEncI.write(4*(MAXBAR-1));
+            //encoder.setPosition((MAXBAR-1));
         }
         break;
     case 2: //length
         if (rotaryEncNewPosition < 1) {
             rotaryEncNewPosition = 1;
-            rotaryEncI.write(1*4);
+            //encoder.setPosition(1);
         }
         if (rotaryEncNewPosition > MAXBAR) {
             rotaryEncNewPosition = MAXBAR;
-            rotaryEncI.write(MAXBAR*4);
+            //encoder.setPosition(MAXBAR);
         }
         break;
   }
@@ -135,7 +148,7 @@ void loop()
     }
     if (millis() - time0 > timeout) {
         menu = 0; // just dim
-        rotaryEncI.write(status[0]*4);
+        //encoder.setPosition(status[0]);
         rotaryEncNewPosition = status[0];
     }
 
@@ -149,4 +162,4 @@ void loop()
             pwm.setPWM(i, 0, abs(status[0]) % 4096 );
         }
     }
-}
+  }
