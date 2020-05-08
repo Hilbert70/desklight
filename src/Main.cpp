@@ -27,7 +27,7 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 // 0 dimmer status
 // 1 bar length, minimum = 1
 // 2 bar position
-long status[3] = {10,1,1};
+long status[3] = {50,1,1};
 
 // define vars for testing menu
 const int timeout = 5000;       //define timeout of 5 sec
@@ -61,8 +61,8 @@ void setup()
 
     //encoder.setPosition(status[0]);
 }
-long rotaryEncOldPosition = 0;
-long rotaryEncNewPosition = 0;
+long rotaryEncOldPosition = status[0];
+long rotaryEncNewPosition = status[0];
 // Main logic of your circuit. It defines the interaction between the components you selected. After setup, it runs over and over again, in an eternal loop.
 void loop() 
 {
