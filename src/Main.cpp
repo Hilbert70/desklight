@@ -1,24 +1,33 @@
 // Include Libraries
 #include <Arduino.h>
 #include <Adafruit_PWMServoDriver.h>
+
 #include <Wire.h>
 #include "Button.h"
+#include "Menu.h"
 #include <ErriezRotaryFullStep.h>
 
 #define PIN_A   D5 //ky-040 clk pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
 #define PIN_B   D6 //ky-040 dt  pin,             add 100nF/0.1uF capacitors between pin & ground!!!
 #define BUTTON  D7 //ky-040 sw  pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
-
-int16_t position = 0;
-
-RotaryFullStep encoder(PIN_A, PIN_B);
-Button rotaryButton(BUTTON);
+#define PIXEL_PIN    2 // D4 
 
 // number of elements in the bar, for testing just 3
 #define MAXBAR 3
 #define MAXMENU 3
 //#define MAXLIGHT 175
 #define MAXLIGHT 2048
+
+uint32_t menuColours[] ={0x000000,0xff0000,0x00ff00};
+
+Adafruit_NeoPixel pixels(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
+
+int16_t position = 0;
+
+RotaryFullStep encoder(PIN_A, PIN_B);
+Button rotaryButton(BUTTON);
+Menu barMenu(MAXMENU,pixels,menuColours);
+
 
 // object initialization
 // called this way, it uses the default address 0x40
