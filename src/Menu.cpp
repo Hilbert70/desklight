@@ -14,17 +14,20 @@
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
 
-Menu::Menu(const int maxStates,Adafruit_NeoPixel menupixel, uint32_t colours[]) : m_maxStates(maxStates),m_menupixel(menupixel)
-{
+Menu::Menu(const int maxStates,Adafruit_NeoPixel menupixel, uint32_t colours[])
+{   
     // just copy the colours to local to the class and thats it
-    
+    m_menupixel =menupixel;
+    m_maxStates = maxStates;
+    for (int i=0 ; i<m_maxStates; i++)
+        m_colours[i] = colours[i];
 }
 
 void Menu::setup()
 {
     // called in the arduino setup function
     m_menupixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
-    m_menupixel.setPixelColor(0, m_menupixel.Color(  0,   0,   0));
+    m_menupixel.setPixelColor(0, m_colours[0]);
     m_menupixel.show();  // Initialize all pixels to 'off'
 }
 
@@ -36,5 +39,7 @@ int Menu::getState(){
 void Menu::setState(int state)
 {
     m_menuState = state % m_maxStates;
+    m_menupixel.setPixelColor(0, m_colours[m_menuState]);
+    m_menupixel.show();
     // and change the menu colour
 }

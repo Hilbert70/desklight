@@ -14,7 +14,8 @@ class Menu {
         void setState(int state);
     private:
         Adafruit_NeoPixel m_menupixel;
-        const int m_maxStates;
+        uint32_t m_colours[10];
+        int m_maxStates;
         int m_menuState =0;
 };
 

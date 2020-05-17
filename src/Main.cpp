@@ -18,7 +18,7 @@
 //#define MAXLIGHT 175
 #define MAXLIGHT 2048
 
-uint32_t menuColours[] ={0x000000,0xff0000,0x00ff00};
+uint32_t menuColours[] ={0x000000,0x004400,0x440044,};
 
 Adafruit_NeoPixel pixels(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -40,7 +40,7 @@ long status[3] = {50,1,1};
 
 // define vars for testing menu
 const int timeout = 5000;       //define timeout of 5 sec
-int menu = 0;
+//int menu = 0;
 long time0;
 
 // Setup the essentials for your circuit to work. It runs first every time your circuit is powered with electricity.
@@ -68,6 +68,7 @@ void setup()
     // out for this!
     //Wire.setClock(400000);
 
+    barMenu.setup();    
     //encoder.setPosition(status[0]);
 }
 long rotaryEncOldPosition = status[0];
@@ -91,15 +92,15 @@ void loop()
 
 
   if (rotaryEncIButtonVal) {
-        menu = (menu+1) % MAXMENU;
+        barMenu.setState(barMenu.getState() +1);
         time0 = millis();
         //rotaryEncI.setPosition(status[menu]*4);
-        rotaryEncNewPosition = status[menu];
+        rotaryEncNewPosition = status[barMenu.getState()];
         Serial.print(F("\tmenu: "));
-        Serial.println(menu);
+        Serial.println(barMenu.getState());
   }
   
-  switch (menu){
+  switch (barMenu.getState()){
     case 0: // just dim
         if (rotaryEncNewPosition < 0) {
             rotaryEncNewPosition = 0;
@@ -132,8 +133,8 @@ void loop()
         break;
   }
   
-  if (rotaryEncNewPosition != status[menu]) {
-        status[menu] = rotaryEncNewPosition;
+  if (rotaryEncNewPosition != status[barMenu.getState()]) {
+        status[barMenu.getState()] = rotaryEncNewPosition;
         time0 = millis(); // don't go out of the menu
   //}
   //if (rotaryEncINewPosition != status[menu] || rotaryEncIButtonVal) {
@@ -144,7 +145,7 @@ void loop()
         //Serial.print(F("\tButton2: "));
         //Serial.print(rotaryEncIButtonVal);
         Serial.print(F("\tmenu: "));
-        Serial.print(menu);
+        Serial.print(barMenu.getState());
         Serial.print(F("\tstatus[0] (dim): "));
         Serial.print(status[0]);
         Serial.print(F("\tstatus[1] (start): "));
@@ -153,10 +154,10 @@ void loop()
         Serial.print(status[2]);
 
         Serial.print(F("\tMenus: "));
-        Serial.println(menu);
+        Serial.println(barMenu.getState());
     }
     if (millis() - time0 > timeout) {
-        menu = 0; // just dim
+        barMenu.setState( 0 ); // just dim
         //encoder.setPosition(status[0]);
         rotaryEncNewPosition = status[0];
     }
