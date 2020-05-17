@@ -21,9 +21,6 @@
 uint32_t menuColours[] ={0x000000,0x004400,0x440044,};
 
 Adafruit_NeoPixel pixels(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
-
-int16_t position = 0;
-
 RotaryFullStep encoder(PIN_A, PIN_B);
 Button rotaryButton(BUTTON);
 Menu barMenu(MAXMENU,pixels,menuColours);
@@ -32,6 +29,7 @@ Menu barMenu(MAXMENU,pixels,menuColours);
 // object initialization
 // called this way, it uses the default address 0x40
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
+Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x41);
 
 // 0 dimmer status
 // 1 bar length, minimum = 1
@@ -40,8 +38,9 @@ long status[3] = {50,1,1};
 
 // define vars for testing menu
 const int timeout = 5000;       //define timeout of 5 sec
-//int menu = 0;
 long time0;
+long rotaryEncOldPosition = status[0];
+long rotaryEncNewPosition = status[0];
 
 // Setup the essentials for your circuit to work. It runs first every time your circuit is powered with electricity.
 void setup() 
@@ -57,50 +56,44 @@ void setup()
     Serial.println("start");
    
     pwm.begin();
+    pwm1.begin();
     // In theory the internal oscillator is 25MHz but it really isn't
     // that precise. You can 'calibrate' by tweaking this number till
     // you get the frequency you're expecting!
     pwm.setOscillatorFrequency(27000000);  // The int.osc. is closer to 27MHz
     pwm.setPWMFreq(1600);  // This is the maximum PWM frequency
+    pwm1.setOscillatorFrequency(27000000);  // The int.osc. is closer to 27MHz
+    pwm1.setPWMFreq(1600);  // This is the maximum PWM frequency
 
-    // if you want to really speed stuff up, you can go into 'fast 400khz I2C' mode
-    // some i2c devices dont like this so much so if you're sharing the bus, watch
-    // out for this!
-    //Wire.setClock(400000);
-
+    
     barMenu.setup();    
-    //encoder.setPosition(status[0]);
-}
-long rotaryEncOldPosition = status[0];
-long rotaryEncNewPosition = status[0];
-// Main logic of your circuit. It defines the interaction between the components you selected. After setup, it runs over and over again, in an eternal loop.
+}    
+
 void loop() 
 {
-  long rotaryEncINewPosition = encoder.read(); //rotaryEncI.read();
-  //long rotaryEncNewPosition; // = rotaryEncINewPosition;  // save the origial one 
-  bool rotaryEncIButtonVal = rotaryButton.onPress();
+    long rotaryEncINewPosition = encoder.read(); //rotaryEncI.read();
+    bool rotaryEncIButtonVal = rotaryButton.onPress();
+    int  menu;
 
-  //Serial.print("Position: ");
-  //Serial.println(rotaryEncINewPosition);
-  if (rotaryEncINewPosition == 0) {
-      // no change
-  } else if (abs(rotaryEncINewPosition) >= 2) {
-    rotaryEncNewPosition += rotaryEncINewPosition * 2;
-  } else {
-    rotaryEncNewPosition += rotaryEncINewPosition;
-  }
+    if (rotaryEncINewPosition == 0) {
+        // no change
+    } else if (abs(rotaryEncINewPosition) >= 2) {
+        rotaryEncNewPosition += rotaryEncINewPosition * 2;
+    } else {
+        rotaryEncNewPosition += rotaryEncINewPosition;
+    }
 
-
-  if (rotaryEncIButtonVal) {
+    if (rotaryEncIButtonVal) {
         barMenu.setState(barMenu.getState() +1);
         time0 = millis();
         //rotaryEncI.setPosition(status[menu]*4);
-        rotaryEncNewPosition = status[barMenu.getState()];
+        menu = barMenu.getState();
+        rotaryEncNewPosition = status[menu];
         Serial.print(F("\tmenu: "));
-        Serial.println(barMenu.getState());
-  }
+        Serial.println(menu);
+    }
   
-  switch (barMenu.getState()){
+    switch (barMenu.getState()){
     case 0: // just dim
         if (rotaryEncNewPosition < 0) {
             rotaryEncNewPosition = 0;
@@ -131,13 +124,12 @@ void loop()
             //encoder.setPosition(MAXBAR);
         }
         break;
-  }
+    }
   
-  if (rotaryEncNewPosition != status[barMenu.getState()]) {
-        status[barMenu.getState()] = rotaryEncNewPosition;
+    menu = barMenu.getState();
+    if (rotaryEncNewPosition != status[menu]) {
+        status[menu] = rotaryEncNewPosition;
         time0 = millis(); // don't go out of the menu
-  //}
-  //if (rotaryEncINewPosition != status[menu] || rotaryEncIButtonVal) {
         Serial.print(F("Pos: "));
         Serial.print(rotaryEncNewPosition);
         Serial.print(F("\tButton1: "));
@@ -145,7 +137,7 @@ void loop()
         //Serial.print(F("\tButton2: "));
         //Serial.print(rotaryEncIButtonVal);
         Serial.print(F("\tmenu: "));
-        Serial.print(barMenu.getState());
+        Serial.print(menu);
         Serial.print(F("\tstatus[0] (dim): "));
         Serial.print(status[0]);
         Serial.print(F("\tstatus[1] (start): "));
@@ -154,7 +146,7 @@ void loop()
         Serial.print(status[2]);
 
         Serial.print(F("\tMenus: "));
-        Serial.println(barMenu.getState());
+        Serial.println(menu);
     }
     if (millis() - time0 > timeout) {
         barMenu.setState( 0 ); // just dim
@@ -172,4 +164,5 @@ void loop()
             pwm.setPWM(i, 0, abs(status[0]) % 4096 );
         }
     }
-  }
+    pwm1.setPWM(0,0,2048); // testing pwm1
+}
