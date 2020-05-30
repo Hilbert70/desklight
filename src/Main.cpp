@@ -15,10 +15,9 @@
 // number of elements in the bar, for testing just 3
 #define MAXBAR 3
 #define MAXMENU 3
-//#define MAXLIGHT 175
-#define MAXLIGHT 2048
+#define MAXLIGHT 4095
 
-uint32_t menuColours[] ={0x000000,0x004400,0x440044,};
+uint32_t menuColours[] ={0x000000,0x002200,0x220022,};
 
 Adafruit_NeoPixel pixels(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 RotaryFullStep encoder(PIN_A, PIN_B);
@@ -42,6 +41,24 @@ long time0;
 long rotaryEncOldPosition = status[0];
 long rotaryEncNewPosition = status[0];
 
+
+void updateLED(long what[])
+{
+    // only update when we have a change
+    // Drive each PWM in a 'wave'
+    for (int i =0 ; i<MAXBAR ; i++ ){
+        if (i<what[1] || i>=what[1]+what[2]) {
+            // before the start or after start + length efferyting is off
+            pwm.setPWM(i, 0, 0 );
+        } else {
+            pwm.setPWM(i, 0, 4095); // testing pwm1
+        }
+    }
+    // Should become colour temperature
+    pwm1.setPWM(0, 0,  abs(what[0]) % 4096  );
+    pwm1.setPWM(1, 0,  abs(what[0]) % 4096  );
+    pwm1.setPWM(2, 0,  abs(what[0]) % 4096  );
+}
 // Setup the essentials for your circuit to work. It runs first every time your circuit is powered with electricity.
 void setup() 
 {
@@ -60,13 +77,14 @@ void setup()
     // In theory the internal oscillator is 25MHz but it really isn't
     // that precise. You can 'calibrate' by tweaking this number till
     // you get the frequency you're expecting!
-    pwm.setOscillatorFrequency(27000000);  // The int.osc. is closer to 27MHz
-    pwm.setPWMFreq(1600);  // This is the maximum PWM frequency
+    pwm.setOscillatorFrequency(27000000);
+    pwm.setPWMFreq(800);  // This is the maximum PWM frequency
     pwm1.setOscillatorFrequency(27000000);  // The int.osc. is closer to 27MHz
-    pwm1.setPWMFreq(1600);  // This is the maximum PWM frequency
-
+    pwm1.setPWMFreq(800);  // This is the maximum PWM frequency
     
-    barMenu.setup();    
+    
+    barMenu.setup();
+    updateLED(status);
 }    
 
 void loop() 
@@ -86,7 +104,6 @@ void loop()
     if (rotaryEncIButtonVal) {
         barMenu.setState(barMenu.getState() +1);
         time0 = millis();
-        //rotaryEncI.setPosition(status[menu]*4);
         menu = barMenu.getState();
         rotaryEncNewPosition = status[menu];
         Serial.print(F("\tmenu: "));
@@ -97,31 +114,25 @@ void loop()
     case 0: // just dim
         if (rotaryEncNewPosition < 0) {
             rotaryEncNewPosition = 0;
-            //encoder.setPosition(0);
         }
         if (rotaryEncNewPosition > MAXLIGHT) {
             rotaryEncNewPosition = MAXLIGHT;
-            //encoder.setPosition(MAXLIGHT);
         }
         break;
     case 1: // start
         if (rotaryEncNewPosition < 0) {
             rotaryEncNewPosition = 0;
-            //encoder.setPosition(0);
         }
         if (rotaryEncNewPosition > MAXBAR-1) {
             rotaryEncNewPosition = MAXBAR-1;
-            //encoder.setPosition((MAXBAR-1));
         }
         break;
     case 2: //length
         if (rotaryEncNewPosition < 1) {
             rotaryEncNewPosition = 1;
-            //encoder.setPosition(1);
         }
         if (rotaryEncNewPosition > MAXBAR) {
             rotaryEncNewPosition = MAXBAR;
-            //encoder.setPosition(MAXBAR);
         }
         break;
     }
@@ -134,8 +145,6 @@ void loop()
         Serial.print(rotaryEncNewPosition);
         Serial.print(F("\tButton1: "));
         Serial.print(rotaryEncIButtonVal);
-        //Serial.print(F("\tButton2: "));
-        //Serial.print(rotaryEncIButtonVal);
         Serial.print(F("\tmenu: "));
         Serial.print(menu);
         Serial.print(F("\tstatus[0] (dim): "));
@@ -147,22 +156,13 @@ void loop()
 
         Serial.print(F("\tMenus: "));
         Serial.println(menu);
+
+        updateLED(status);
     }
+
     if (millis() - time0 > timeout) {
         barMenu.setState( 0 ); // just dim
-        //encoder.setPosition(status[0]);
         rotaryEncNewPosition = status[0];
     }
 
-    // Drive each PWM in a 'wave'
-    for (int i =0 ; i<MAXBAR ; i++ ){
-        if (i<status[1] || i>=status[1]+status[2]) {
-            // before the start or after start + length efferyting is off
-            pwm.setPWM(i, 0, 0 );
-        } else {
-//            pwm.setPWM(i, 0, long(square(status[0])/8) % 4096 );
-            pwm.setPWM(i, 0, abs(status[0]) % 4096 );
-        }
-    }
-    pwm1.setPWM(0,0,2048); // testing pwm1
 }
