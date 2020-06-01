@@ -90,6 +90,9 @@ void setup()
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
     Serial.println("Booting deskLight 0.1");
+    // Hostname defaults to esp8266-[ChipID]
+    // later the hostname comes from the web page
+    WiFi.hostname("desklight");
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     while (WiFi.waitForConnectResult() != WL_CONNECTED) {
@@ -99,9 +102,7 @@ void setup()
     }
 
     
-    // Hostname defaults to esp8266-[ChipID]
-    // later the hostname comes from the web page
-    ArduinoOTA.setHostname("desklight");
+    
 
     ArduinoOTA.onStart([]() {
         String type;
