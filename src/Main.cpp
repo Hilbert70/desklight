@@ -28,7 +28,7 @@ const char* password = STAPSK;
 #define PIXEL_PIN    2 // D4 
 
 // number of elements in the bar, for testing just 3
-#define MAXBAR 3
+#define MAXBAR 16
 #define MAXMENU 3
 #define MAXLIGHT 4095
 
