@@ -32,6 +32,10 @@ const char* password = STAPSK;
 #define MAXMENU 3
 #define MAXLIGHT 4095
 
+#define ST_DIM 0
+#define ST_LENGTH 1
+#define ST_START 2
+
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,};
 
 Adafruit_NeoPixel pixels(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
@@ -45,9 +49,9 @@ Menu barMenu(MAXMENU,pixels,menuColours);
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x41);
 
-// 0 dimmer status
-// 1 bar length, minimum = 1
-// 2 bar position
+// 0 dimmer status; ST_DIM
+// 1 bar length, minimum = 1; ST_LENGTH
+// 2 bar position; ST_START
 long status[3] = {50,1,1};
 
 // define vars for testing menu
@@ -62,7 +66,7 @@ void updateLED(long what[])
     // only update when we have a change
     // Drive each PWM in a 'wave'
     for (int i =0 ; i<MAXBAR ; i++ ){
-        if (i<what[1] || i>=what[1]+what[2]) {
+        if (i<what[ST_START] || i>=what[ST_START]+what[ST_LENGTH]) {
             // before the start or after start + length efferyting is off
             pwm.setPWM(i, 0, 0 );
         } else {
@@ -183,7 +187,7 @@ void loop()
     }
   
     switch (barMenu.getState()){
-    case 0: // just dim
+    case ST_DIM: // just dim
         if (rotaryEncNewPosition < 0) {
             rotaryEncNewPosition = 0;
         }
@@ -191,7 +195,7 @@ void loop()
             rotaryEncNewPosition = MAXLIGHT;
         }
         break;
-    case 1: // start
+    case ST_START: // start
         if (rotaryEncNewPosition < 0) {
             rotaryEncNewPosition = 0;
         }
@@ -199,7 +203,7 @@ void loop()
             rotaryEncNewPosition = MAXBAR-1;
         }
         break;
-    case 2: //length
+    case ST_LENGTH: //length
         if (rotaryEncNewPosition < 1) {
             rotaryEncNewPosition = 1;
         }
