@@ -36,7 +36,7 @@ const char* password = STAPSK;
 #define ST_LENGTH 1
 #define ST_START 2
 
-uint32_t menuColours[] ={0x000000,0x002200,0x220022,};
+uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
 
 Adafruit_NeoPixel pixels(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 RotaryFullStep encoder(PIN_A, PIN_B);
@@ -168,12 +168,30 @@ void loop()
     long rotaryEncINewPosition = encoder.read(); //rotaryEncI.read();
     bool rotaryEncIButtonVal = rotaryButton.onPress();
     int  menu;
+    int  sign;
 
     if (rotaryEncINewPosition == 0) {
         // no change
-    } else if (abs(rotaryEncINewPosition) >= 2) {
-        rotaryEncNewPosition += rotaryEncINewPosition * 2;
+    //} else if (abs(rotaryEncINewPosition) >= 2) {
+    //    rotaryEncNewPosition += rotaryEncINewPosition * 2;
     } else {
+        menu = barMenu.getState();
+        
+        if (menu == ST_DIM) {
+            sign = 1;
+            if (rotaryEncINewPosition <0) {
+                sign = -1;
+            }
+            if (rotaryEncNewPosition < 100) {
+                rotaryEncINewPosition = 1;
+            } else if (rotaryEncNewPosition >= 100 && rotaryEncNewPosition < 1000 ) {
+                rotaryEncINewPosition = 10;
+            } else {
+                // larger that 1000
+                rotaryEncINewPosition = 100;
+            }
+            rotaryEncINewPosition *= sign;
+        }
         rotaryEncNewPosition += rotaryEncINewPosition;
     }
 
