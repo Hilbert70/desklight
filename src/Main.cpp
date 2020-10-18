@@ -70,6 +70,15 @@ int calculateStart(int s, int l)
     lr = l == 1?0: hl;
     ll = l == 1?0: (l%2==0?hl-1:hl);
 
+    Serial.print(F("\tstart: "));
+    Serial.print(s);
+    Serial.print(F("\tlength: "));
+    Serial.print(l);
+    Serial.print(F("\tlr: "));
+    Serial.print(lr);
+    Serial.print(F("\tll: "));
+    Serial.println(ll);
+
     if (s + lr > MAXBAR) {
         start = MAXBAR -lr;
     } else if (s - ll < 0 ) {
@@ -82,10 +91,16 @@ int calculateStart(int s, int l)
 
 void updateLED(long what[])
 {
+    int lr,ll, hl;
+
+    hl = what[ST_LENGTH]/2;
+    lr = what[ST_LENGTH] == 1?0: hl;
+    ll = what[ST_LENGTH] == 1?0: (l%2==0?hl-1:hl);
+
     // only update when we have a change
     // Drive each PWM in a 'wave'
     for (int i =0 ; i<MAXBAR ; i++ ){
-        if (i<what[ST_START] || i>=what[ST_START]+what[ST_LENGTH]) {
+        if (i<what[ST_START]-lr || i>=what[ST_START]+ll) {
             // before the start or after start + length efferyting is off
             pwm.setPWM(i, 0, 0 );
         } else {
