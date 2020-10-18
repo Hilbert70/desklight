@@ -29,12 +29,14 @@ const char* password = STAPSK;
 
 // number of elements in the bar, for testing just 3
 #define MAXBAR 16
-#define MAXMENU 3
+#define MAXMENU 4
+#define MAXMODES 6
 #define MAXLIGHT 4095
 
 #define ST_DIM 0
-#define ST_LENGTH 1
-#define ST_START 2
+#define ST_START 1
+#define ST_LENGTH 2
+#define ST_LEDS 3
 
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
 
@@ -52,7 +54,7 @@ Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x41);
 // 0 dimmer status; ST_DIM
 // 1 bar length, minimum = 1; ST_LENGTH
 // 2 bar position; ST_START
-long status[3] = {50,1,1};
+long status[4] = {50,1,1,1};
 
 // define vars for testing menu
 const int timeout = 5000;       //define timeout of 5 sec
@@ -74,9 +76,38 @@ void updateLED(long what[])
         }
     }
     // Should become colour temperature
-    pwm1.setPWM(0, 0,  abs(what[0]) % 4096  );
-    pwm1.setPWM(1, 0,  abs(what[0]) % 4096  );
-    pwm1.setPWM(2, 0,  abs(what[0]) % 4096  );
+    switch (what[ST_LEDS]) {
+    case 0: // warm white is on (1)
+        pwm1.setPWM(0, 0,  0  );
+        pwm1.setPWM(1, 0,  abs(what[0]) % 4096  );
+        pwm1.setPWM(2, 0,  0  );
+        break;
+    case 1: // warm white and white is on (0 + 1)
+        pwm1.setPWM(0, 0,  abs(what[0]) % 4096  );
+        pwm1.setPWM(1, 0,  abs(what[0]) % 4096  );
+        pwm1.setPWM(2, 0,  0  );
+        break;
+    case 2: //  white is on (0)
+        pwm1.setPWM(0, 0,  abs(what[0]) % 4096  );
+        pwm1.setPWM(1, 0,  0  );
+        pwm1.setPWM(2, 0,  0  );
+        break;
+    case 3: // white and cool whilte s on (0 2)
+        pwm1.setPWM(0, 0,  abs(what[0]) % 4096  );
+        pwm1.setPWM(1, 0,  0  );
+        pwm1.setPWM(2, 0,  abs(what[0]) % 4096  );
+        break;
+    case 4: // warm white is on (2)
+        pwm1.setPWM(0, 0,  0  );
+        pwm1.setPWM(1, 0,  0  );
+        pwm1.setPWM(2, 0,  abs(what[0]) % 4096  );
+        break;
+    case 5: // all ar on
+        pwm1.setPWM(0, 0,  abs(what[0]) % 4096  );
+        pwm1.setPWM(1, 0,  abs(what[0]) % 4096  );
+        pwm1.setPWM(2, 0,  abs(what[0]) % 4096  );
+        break;
+    }
 }
 
 
@@ -93,7 +124,7 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 0.1");
+    Serial.println("Booting deskLight 0.2");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
     WiFi.hostname("desklight");
@@ -182,8 +213,10 @@ void loop()
             if (rotaryEncINewPosition <0) {
                 sign = -1;
             }
-            if (rotaryEncNewPosition < 100) {
+            if (rotaryEncNewPosition < 10) {
                 rotaryEncINewPosition = 1;
+            } else if (rotaryEncNewPosition >= 10 && rotaryEncNewPosition < 100 ) {
+                rotaryEncINewPosition = 5;
             } else if (rotaryEncNewPosition >= 100 && rotaryEncNewPosition < 1000 ) {
                 rotaryEncINewPosition = 10;
             } else {
@@ -206,8 +239,8 @@ void loop()
   
     switch (barMenu.getState()){
     case ST_DIM: // just dim
-        if (rotaryEncNewPosition < 0) {
-            rotaryEncNewPosition = 0;
+        if (rotaryEncNewPosition < 1) {
+            rotaryEncNewPosition = 1;
         }
         if (rotaryEncNewPosition > MAXLIGHT) {
             rotaryEncNewPosition = MAXLIGHT;
@@ -229,6 +262,14 @@ void loop()
             rotaryEncNewPosition = MAXBAR;
         }
         break;
+    case ST_LEDS: // bar while mode
+        if (rotaryEncNewPosition < 0) {
+            rotaryEncNewPosition = MAXMODES-1;
+        }
+        if (rotaryEncNewPosition >= MAXMODES) {
+            rotaryEncNewPosition = 0;
+        }
+        break;
     }
   
     menu = barMenu.getState();
@@ -241,12 +282,14 @@ void loop()
         Serial.print(rotaryEncIButtonVal);
         Serial.print(F("\tmenu: "));
         Serial.print(menu);
-        Serial.print(F("\tstatus[0] (dim): "));
-        Serial.print(status[0]);
-        Serial.print(F("\tstatus[1] (start): "));
-        Serial.print(status[1]);
-        Serial.print(F("\tstatus[2] (lengtg): "));
-        Serial.print(status[2]);
+        Serial.print(F("\tstatus[ST_DIM] (dim): "));
+        Serial.print(status[ST_DIM]);
+        Serial.print(F("\tstatus[ST_START] (start): "));
+        Serial.print(status[ST_START]);
+        Serial.print(F("\tstatus[ST_LENGTH] (lengtg): "));
+        Serial.print(status[ST_LENGTH]);
+        Serial.print(F("\tstatus[ST_LEDS] (lengtg): "));
+        Serial.print(status[ST_LEDS]);
 
         Serial.print(F("\tMenus: "));
         Serial.println(menu);
