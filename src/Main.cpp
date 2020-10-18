@@ -62,6 +62,23 @@ long time0;
 long rotaryEncOldPosition = status[0];
 long rotaryEncNewPosition = status[0];
 
+int calculateStart(int s, int l)
+{
+    int ll, lr, hl, start;
+    hl = l/2;
+
+    lr = l == 1?0: hl;
+    ll = l == 1?0: (l%2==0?hl-1:hl);
+
+    if (s + lr > MAXBAR) {
+        start = MAXBAR -lr;
+    } else if (s - ll < 0 ) {
+        start = ll;
+    } else {
+        start = s;
+    }
+    return start;
+}
 
 void updateLED(long what[])
 {
@@ -124,7 +141,7 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 0.2");
+    Serial.println("Booting deskLight 0.3");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
     WiFi.hostname("desklight");
@@ -275,6 +292,10 @@ void loop()
     menu = barMenu.getState();
     if (rotaryEncNewPosition != status[menu]) {
         status[menu] = rotaryEncNewPosition;
+        if (menu == ST_START || menu == ST_LENGTH) {
+            // update start
+            status[ST_START]=calculateStart(status[ST_START], status[ST_LENGTH]);
+        }
         time0 = millis(); // don't go out of the menu
         Serial.print(F("Pos: "));
         Serial.print(rotaryEncNewPosition);
@@ -286,9 +307,9 @@ void loop()
         Serial.print(status[ST_DIM]);
         Serial.print(F("\tstatus[ST_START] (start): "));
         Serial.print(status[ST_START]);
-        Serial.print(F("\tstatus[ST_LENGTH] (lengtg): "));
+        Serial.print(F("\tstatus[ST_LENGTH] (length): "));
         Serial.print(status[ST_LENGTH]);
-        Serial.print(F("\tstatus[ST_LEDS] (lengtg): "));
+        Serial.print(F("\tstatus[ST_LEDS] (white temp): "));
         Serial.print(status[ST_LEDS]);
 
         Serial.print(F("\tMenus: "));
