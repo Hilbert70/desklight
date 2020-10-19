@@ -62,45 +62,13 @@ long time0;
 long rotaryEncOldPosition = status[0];
 long rotaryEncNewPosition = status[0];
 
-int calculateStart(int s, int l)
-{
-    int ll, lr, hl, start;
-    hl = l/2;
-
-    lr = l == 1?0: hl;
-    ll = l == 1?0: (l%2==0?hl-1:hl);
-
-    Serial.print(F("\tstart: "));
-    Serial.print(s);
-    Serial.print(F("\tlength: "));
-    Serial.print(l);
-    Serial.print(F("\tlr: "));
-    Serial.print(lr);
-    Serial.print(F("\tll: "));
-    Serial.println(ll);
-
-    if (s + lr > MAXBAR) {
-        start = MAXBAR -lr;
-    } else if (s - ll < 0 ) {
-        start = ll;
-    } else {
-        start = s;
-    }
-    return start;
-}
-
 void updateLED(long what[])
 {
-    int lr,ll, hl;
-
-    hl = what[ST_LENGTH]/2;
-    lr = what[ST_LENGTH] == 1?0: hl;
-    ll = what[ST_LENGTH] == 1?0: (what[ST_LENGTH]%2==0?hl-1:hl);
-
+    
     // only update when we have a change
     // Drive each PWM in a 'wave'
     for (int i =0 ; i<MAXBAR ; i++ ){
-        if (i<what[ST_START]-lr || i>=what[ST_START]+ll) {
+        if (i<what[ST_START] || i>=what[ST_START]+what[ST_LENGTH]) {
             // before the start or after start + length efferyting is off
             pwm.setPWM(i, 0, 0 );
         } else {
@@ -287,11 +255,32 @@ void loop()
         }
         break;
     case ST_LENGTH: //length
+        // the decrement/increment is rotaryEncINewPosition
+        // length can not be lower than 1 or higher than maxbar
         if (rotaryEncNewPosition < 1) {
             rotaryEncNewPosition = 1;
         }
         if (rotaryEncNewPosition > MAXBAR) {
             rotaryEncNewPosition = MAXBAR;
+            // start should be 0
+            status[ST_START] = 0;
+        }
+        // and now for the smart stuff
+        if (rotaryEncNewPosition % 2 == 1) {
+            // decrease start by rotaryEncINewPosition
+            status[ST_START] -= rotaryEncINewPosition;
+        }
+        if (status[ST_START] < 0) {
+            // if start is reached lenght should be increased
+            status[ST_START] = 0;
+            rotaryEncNewPosition ++;
+            if (rotaryEncNewPosition > MAXBAR) {
+                rotaryEncNewPosition = MAXBAR;
+            }
+        }
+        if (status[ST_START] + rotaryEncNewPosition > MAXBAR) {
+            // move start back if end is reached
+            status[ST_START] = MAXBAR -rotaryEncNewPosition -1;
         }
         break;
     case ST_LEDS: // bar while mode
@@ -307,10 +296,6 @@ void loop()
     menu = barMenu.getState();
     if (rotaryEncNewPosition != status[menu]) {
         status[menu] = rotaryEncNewPosition;
-        if (menu == ST_START || menu == ST_LENGTH) {
-            // update start
-            status[ST_START]=calculateStart(status[ST_START], status[ST_LENGTH]);
-        }
         time0 = millis(); // don't go out of the menu
         Serial.print(F("Pos: "));
         Serial.print(rotaryEncNewPosition);
