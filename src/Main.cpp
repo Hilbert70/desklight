@@ -95,7 +95,7 @@ void updateLED(long what[])
 
     hl = what[ST_LENGTH]/2;
     lr = what[ST_LENGTH] == 1?0: hl;
-    ll = what[ST_LENGTH] == 1?0: (l%2==0?hl-1:hl);
+    ll = what[ST_LENGTH] == 1?0: (what[ST_LENGTH]%2==0?hl-1:hl);
 
     // only update when we have a change
     // Drive each PWM in a 'wave'
