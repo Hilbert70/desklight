@@ -247,11 +247,12 @@ void loop()
         }
         break;
     case ST_START: // start
+        // start should do something with length
         if (rotaryEncNewPosition < 0) {
             rotaryEncNewPosition = 0;
         }
-        if (rotaryEncNewPosition > MAXBAR-1) {
-            rotaryEncNewPosition = MAXBAR-1;
+        if (rotaryEncNewPosition > MAXBAR-status[ST_LENGTH]) {
+            rotaryEncNewPosition = MAXBAR-status[ST_LENGTH];
         }
         break;
     case ST_LENGTH: //length
@@ -280,7 +281,7 @@ void loop()
         }
         if (status[ST_START] + rotaryEncNewPosition > MAXBAR) {
             // move start back if end is reached
-            status[ST_START] = MAXBAR -rotaryEncNewPosition -1;
+            status[ST_START] = MAXBAR -rotaryEncNewPosition;
         }
         break;
     case ST_LEDS: // bar while mode
@@ -303,13 +304,13 @@ void loop()
         Serial.print(rotaryEncIButtonVal);
         Serial.print(F("\tmenu: "));
         Serial.print(menu);
-        Serial.print(F("\tstatus[ST_DIM] (dim): "));
+        Serial.print(F("\t(dim): "));
         Serial.print(status[ST_DIM]);
-        Serial.print(F("\tstatus[ST_START] (start): "));
+        Serial.print(F("\t(start): "));
         Serial.print(status[ST_START]);
-        Serial.print(F("\tstatus[ST_LENGTH] (length): "));
+        Serial.print(F("\t(length): "));
         Serial.print(status[ST_LENGTH]);
-        Serial.print(F("\tstatus[ST_LEDS] (white temp): "));
+        Serial.print(F("\t(white temp): "));
         Serial.print(status[ST_LEDS]);
 
         Serial.print(F("\tMenus: "));
