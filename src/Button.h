@@ -16,7 +16,9 @@ class Button {
     bool onPress();
     //return True only on Release
     bool onRelease();
-    
+
+    bool getState();
+
 
   private:
     const int m_pin;
@@ -24,6 +26,7 @@ class Button {
     long m_lastDebounceTime = 0;  // the last time the output pin was toggled
     const int m_debounceDelay = 50;    // the debounce time; increase if the output flickers
     bool m_pressFlag = 0;
+    bool m_state = 0;
 
 };
 

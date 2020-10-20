@@ -56,6 +56,7 @@ long status[4] = {50,1,1,1};
 // define vars for testing menu
 const int timeout = 5000;       //define timeout of 5 sec
 long time0;
+long timeButton;
 long rotaryEncOldPosition = status[0];
 long rotaryEncNewPosition = status[0];
 
@@ -194,7 +195,7 @@ void setup()
 void loop() 
 {
     long rotaryEncINewPosition = encoder.read(); //rotaryEncI.read();
-    bool rotaryEncIButtonVal = rotaryButton.onPress();
+    bool rotaryEncIButtonVal = rotaryButton.onChange();
     int  menu;
     int  sign;
 
@@ -224,16 +225,25 @@ void loop()
         }
         rotaryEncNewPosition += rotaryEncINewPosition;
     }
+    if (rotaryEncIButtonVal && rotaryButton.getState() ==HIGH) {
+        Serial.print(F("\ttime: "));
+        Serial.println(millis()-timeButton);
+    }
 
-    if (rotaryEncIButtonVal) {
+    if (rotaryEncIButtonVal && rotaryButton.getState() ==LOW) {
         barMenu.setState(barMenu.getState() +1);
         time0 = millis();
+        timeButton = millis();
         menu = barMenu.getState();
         rotaryEncNewPosition = status[menu];
+        Serial.print(F("\ttime: "));
+        Serial.print(millis()-timeButton);
         Serial.print(F("\tmenu: "));
         Serial.println(menu);
     }
-  
+
+    //Serial.println(rotaryButton.onChange());
+
     switch (barMenu.getState()){
     case ST_DIM: // just dim
         if (rotaryEncNewPosition < 1) {

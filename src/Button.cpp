@@ -38,6 +38,7 @@ bool Button::onChange()
     // reset the debouncing timer
     m_lastDebounceTime = millis();
     m_pressFlag = 1;
+    m_state = reading;
   }
 
   if ((millis() - m_lastDebounceTime) > m_debounceDelay) {
@@ -65,6 +66,7 @@ bool Button::onPress()
 {
   //read button state. '1' is pushed, '0' is not pushed.
   bool reading = read();
+  
   // If the switch changed, due to noise or pressing:
   if (reading == HIGH && m_lastButtonState == LOW) {
     // reset the debouncing timer
@@ -121,4 +123,6 @@ bool Button::onRelease()
 
 }
 
-
+bool Button::getState(){
+  return m_state;
+}
