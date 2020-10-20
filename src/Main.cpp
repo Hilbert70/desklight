@@ -300,20 +300,20 @@ void loop()
         time0 = millis(); // don't go out of the menu
         Serial.print(F("Pos: "));
         Serial.print(rotaryEncNewPosition);
-        Serial.print(F("\tButton1: "));
+        Serial.print(F(" Button1: "));
         Serial.print(rotaryEncIButtonVal);
-        Serial.print(F("\tmenu: "));
+        Serial.print(F(" menu: "));
         Serial.print(menu);
-        Serial.print(F("\t(dim): "));
+        Serial.print(F(" (dim): "));
         Serial.print(status[ST_DIM]);
-        Serial.print(F("\t(start): "));
+        Serial.print(F(" (start): "));
         Serial.print(status[ST_START]);
-        Serial.print(F("\t(length): "));
+        Serial.print(F(" (length): "));
         Serial.print(status[ST_LENGTH]);
-        Serial.print(F("\t(white temp): "));
+        Serial.print(F(" (white temp): "));
         Serial.print(status[ST_LEDS]);
 
-        Serial.print(F("\tMenus: "));
+        Serial.print(F(" Menus: "));
         Serial.println(menu);
 
         updateLED(status);
