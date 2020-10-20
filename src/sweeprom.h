@@ -10,11 +10,15 @@
 
 #define EEPROMVERSION 0
 
+#define ST_DIM 0
+#define ST_START 1
+#define ST_LENGTH 2
+#define ST_LEDS 3
+
+
 typedef struct {
     char version;
-    int  delay;
-    int  voltageWarning;
-    int  voltageLow;
+    long  status[4];
 } SWEeprom;
     
 extern SWEeprom initSwEEPROM();

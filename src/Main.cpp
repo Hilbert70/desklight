@@ -12,6 +12,7 @@
 #include "Menu.h"
 #include <ErriezRotaryFullStep.h>
 
+#include "sweeprom.h"
 #include "ssidandpassword.h"
 
 #ifndef STASSID
@@ -33,10 +34,6 @@ const char* password = STAPSK;
 #define MAXMODES 6
 #define MAXLIGHT 4095
 
-#define ST_DIM 0
-#define ST_START 1
-#define ST_LENGTH 2
-#define ST_LEDS 3
 
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
 
