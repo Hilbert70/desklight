@@ -116,6 +116,8 @@ void updateLED(long what[])
 // Setup the essentials for your circuit to work. It runs first every time your circuit is powered with electricity.
 void setup() 
 {
+    int i;
+
     // Setup Serial which is useful for debugging
     // Use the Serial Monitor to view printed messages
 
@@ -198,6 +200,14 @@ void setup()
 	    // read version value
 	    eepromdata = readSwEEPROM();
     }
+    Serial.print("Eeprom data: ");
+    for (i=0; i<4; i++) {
+        Serial.print(eepromdata.status[i]);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    
     rotaryEncOldPosition = eepromdata.status[0];
     rotaryEncNewPosition = eepromdata.status[0];
 

@@ -40,6 +40,7 @@ void writeSwEEPROM(SWEeprom newdata)
     int i;
     long value;
 
+    EEPROM.begin(sizeof(SWEeprom));
     for (i=0; i<5 ; i++) {
         if (olddata.status[i] != newdata.status[i]){
             value = newdata.status[i];
@@ -51,4 +52,5 @@ void writeSwEEPROM(SWEeprom newdata)
             EEPROM.write(1+4*i, value / 256);
         }
     }
+    EEPROM.commit();
 }

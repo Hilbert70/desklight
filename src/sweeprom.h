@@ -8,7 +8,7 @@
  */
 #include <EEPROM.h>
 
-#define EEPROMVERSION 0
+#define EEPROMVERSION 1
 
 #define ST_DIM 0
 #define ST_START 1
