@@ -3,6 +3,7 @@
 #include <Adafruit_PWMServoDriver.h>
 
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
@@ -62,6 +63,9 @@ long rotaryEncOldPosition;
 long rotaryEncNewPosition;
 
 SWEeprom eepromdata;
+
+// Create a new web server
+ESP8266WebServer webserver(80);
 
 void updateLED(long what[])
 {

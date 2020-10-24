@@ -10,4 +10,4 @@ Working:
 TODO:
   - setup using web page
   - setup using AP mode
-
+  - demo mode
