@@ -15,14 +15,23 @@
 #define ST_LENGTH 2
 #define ST_LEDS 3
 
-
-typedef struct {
-    char version;
-    long  status[4];
-} SWEeprom;
-    
-extern SWEeprom initSwEEPROM();
-extern SWEeprom readSwEEPROM();
-extern void writeSwEEPROM(SWEeprom);
+class SWEeprom {
+    public:
+        SWEeprom();
+        
+        long * init();
+        long * read();
+        void write();
+        long * getStatus();
+        void setStatus(int key, long value);
+        void incStatus(int key, long value);
+        void decStatus(int key, long value);
+        bool written();
+        
+    private:
+        char version;
+        long status[4];
+        bool Ewritten;
+};
 
 #endif

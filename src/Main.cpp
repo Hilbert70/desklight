@@ -56,6 +56,7 @@ Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x41);
 // define vars for testing menu
 const int timeout = 5000;       //define timeout of 5 sec
 long time0;
+long lastMenuUpdate;
 long timeButton;
 long rotaryEncOldPosition;
 long rotaryEncNewPosition;
@@ -117,6 +118,7 @@ void updateLED(long what[])
 void setup() 
 {
     int i;
+    long * status;
 
     // Setup Serial which is useful for debugging
     // Use the Serial Monitor to view printed messages
@@ -191,28 +193,21 @@ void setup()
     pwm1.setOscillatorFrequency(27000000);  // The int.osc. is closer to 27MHz
     pwm1.setPWMFreq(800);  // This is the maximum PWM frequency
     
-    eepromdata = readSwEEPROM();
-    if (eepromdata.version != EEPROMVERSION) {
-	    // initialze at the default values
-        // no eeprom upgrade options ;-)
-	    eepromdata = initSwEEPROM();
-    } else {
-	    // read version value
-	    eepromdata = readSwEEPROM();
-    }
+    status = eepromdata.init();
+
     Serial.print("Eeprom data: ");
     for (i=0; i<4; i++) {
-        Serial.print(eepromdata.status[i]);
+        Serial.print(status[i]);
         Serial.print(" ");
     }
     Serial.println();
 
     
-    rotaryEncOldPosition = eepromdata.status[0];
-    rotaryEncNewPosition = eepromdata.status[0];
+    rotaryEncOldPosition = status[0];
+    rotaryEncNewPosition = status[0];
 
     barMenu.setup();
-    updateLED(eepromdata.status);
+    updateLED(status);
 }    
 
 void loop() 
@@ -221,19 +216,22 @@ void loop()
     bool rotaryEncIButtonVal = rotaryButton.onChange();
     int  menu;
     int  sign;
+    long * status;
+
+    status = eepromdata.getStatus();
 
     if (rotaryEncINewPosition == 0) {
         // no change
     //} else if (abs(rotaryEncINewPosition) >= 2) {
     //    rotaryEncNewPosition += rotaryEncINewPosition * 2;
     } else {
+        lastMenuUpdate = millis();
         menu = barMenu.getState();
-        
+        sign = 1;
+        if (rotaryEncINewPosition <0) {
+            sign = -1;
+        }
         if (menu == ST_DIM) {
-            sign = 1;
-            if (rotaryEncINewPosition <0) {
-                sign = -1;
-            }
             if (rotaryEncNewPosition < 10) {
                 rotaryEncINewPosition = 1;
             } else if (rotaryEncNewPosition >= 10 && rotaryEncNewPosition < 100 ) {
@@ -245,6 +243,9 @@ void loop()
                 rotaryEncINewPosition = 100;
             }
             rotaryEncINewPosition *= sign;
+        } else {
+            // Else do only one decrease or increase, high is not needed
+            rotaryEncINewPosition = sign;
         }
         rotaryEncNewPosition += rotaryEncINewPosition;
     }
@@ -254,11 +255,12 @@ void loop()
     }
 
     if (rotaryEncIButtonVal && rotaryButton.getState() ==LOW) {
+        lastMenuUpdate = millis();
         barMenu.setState(barMenu.getState() +1);
         time0 = millis();
         timeButton = millis();
         menu = barMenu.getState();
-        rotaryEncNewPosition = eepromdata.status[menu];
+        rotaryEncNewPosition = status[menu];
         Serial.print(F("\ttime: "));
         Serial.print(millis()-timeButton);
         Serial.print(F("\tmenu: "));
@@ -281,8 +283,8 @@ void loop()
         if (rotaryEncNewPosition < 0) {
             rotaryEncNewPosition = 0;
         }
-        if (rotaryEncNewPosition > MAXBAR-eepromdata.status[ST_LENGTH]) {
-            rotaryEncNewPosition = MAXBAR-eepromdata.status[ST_LENGTH];
+        if (rotaryEncNewPosition > MAXBAR-status[ST_LENGTH]) {
+            rotaryEncNewPosition = MAXBAR-status[ST_LENGTH];
         }
         break;
     case ST_LENGTH: //length
@@ -294,24 +296,24 @@ void loop()
         if (rotaryEncNewPosition > MAXBAR) {
             rotaryEncNewPosition = MAXBAR;
             // start should be 0
-            eepromdata.status[ST_START] = 0;
+            eepromdata.setStatus(ST_START,0);
         }
         // and now for the smart stuff
         if (rotaryEncNewPosition % 2 == 1) {
             // decrease start by rotaryEncINewPosition
-            eepromdata.status[ST_START] -= rotaryEncINewPosition;
+            eepromdata.decStatus(ST_START, rotaryEncINewPosition);
         }
-        if (eepromdata.status[ST_START] < 0) {
+        if (status[ST_START] < 0) {
             // if start is reached lenght should be increased
-            eepromdata.status[ST_START] = 0;
+            eepromdata.setStatus(ST_START,  0);
             rotaryEncNewPosition ++;
             if (rotaryEncNewPosition > MAXBAR) {
                 rotaryEncNewPosition = MAXBAR;
             }
         }
-        if (eepromdata.status[ST_START] + rotaryEncNewPosition > MAXBAR) {
+        if (status[ST_START] + rotaryEncNewPosition > MAXBAR) {
             // move start back if end is reached
-            eepromdata.status[ST_START] = MAXBAR -rotaryEncNewPosition;
+            eepromdata.setStatus(ST_START , MAXBAR -rotaryEncNewPosition);
         }
         break;
     case ST_LEDS: // bar while mode
@@ -325,8 +327,8 @@ void loop()
     }
   
     menu = barMenu.getState();
-    if (rotaryEncNewPosition != eepromdata.status[menu]) {
-        eepromdata.status[menu] = rotaryEncNewPosition;
+    if (rotaryEncNewPosition != status[menu]) {
+        eepromdata.setStatus(menu , rotaryEncNewPosition);
         time0 = millis(); // don't go out of the menu
         Serial.print(F("Pos: "));
         Serial.print(rotaryEncNewPosition);
@@ -335,25 +337,30 @@ void loop()
         Serial.print(F(" menu: "));
         Serial.print(menu);
         Serial.print(F(" (dim): "));
-        Serial.print(eepromdata.status[ST_DIM]);
+        Serial.print(status[ST_DIM]);
         Serial.print(F(" (start): "));
-        Serial.print(eepromdata.status[ST_START]);
+        Serial.print(status[ST_START]);
         Serial.print(F(" (length): "));
-        Serial.print(eepromdata.status[ST_LENGTH]);
+        Serial.print(status[ST_LENGTH]);
         Serial.print(F(" (white temp): "));
-        Serial.print(eepromdata.status[ST_LEDS]);
+        Serial.print(status[ST_LEDS]);
 
         Serial.print(F(" Menus: "));
         Serial.println(menu);
 
-        updateLED(eepromdata.status);
+        updateLED(status);
     }
 
     if (millis() - time0 > timeout) {
         barMenu.setState( 0 ); // just dim
-        rotaryEncNewPosition = eepromdata.status[0];
+        rotaryEncNewPosition = status[0];
     }
-
+    if (millis() - lastMenuUpdate > timeout && !eepromdata.written()) {
+        // after timeout no actions (5 sec), update the eeprom.
+        // The eeprom only writes the changes
+        Serial.println("Write eeprom");
+        eepromdata.write();
+    }
     
     ArduinoOTA.handle();
 }

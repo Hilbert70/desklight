@@ -6,44 +6,68 @@
 
 #include "sweeprom.h"
 
-SWEeprom initSwEEPROM()
-{
-    SWEeprom ret;
 
-    ret.version = EEPROMVERSION;
-    ret.status[0]  = 50;
-    ret.status[1]  = 1;
-    ret.status[2]  = 1;
-    ret.status[3]  = 1;
-    writeSwEEPROM(ret);
-    
-    return ret;
+long readLong(int addres){
+    return ( (EEPROM.read(addres)*256+EEPROM.read(1+addres))*256 + EEPROM.read(2+addres))*256 + EEPROM.read(3+addres);
 }
 
-SWEeprom readSwEEPROM()
+SWEeprom::SWEeprom()
 {
-    SWEeprom ret;
-    int i;
+    Ewritten = false;
+    EEPROM.begin(512);
+}
 
-    ret.version   = EEPROM.read(0);
-    for (i=0; i<5 ; i++) {
-        ret.status[i] = ( (EEPROM.read(1+4*i)*256+EEPROM.read(2+4*i))*256 + EEPROM.read(3+4*i))*256 + EEPROM.read(4+4*i);
+long * SWEeprom::init()
+{
+    char oldVersion;
+
+    oldVersion = EEPROM.read(0);
+
+    if (oldVersion != EEPROMVERSION) {
+        // 'upgrade'
+        version = EEPROMVERSION;
+        status[0]  = 50;
+        status[1]  = 4;
+        status[2]  = 3;
+        status[3]  = 2;
+        write();
+    } else {
+        read();
     }
-    
-    return ret;
+
+    return status;
 }
 
-/* only write changed data */
-void writeSwEEPROM(SWEeprom newdata)
+long * SWEeprom::read()
 {
-    SWEeprom olddata = readSwEEPROM();
     int i;
+    version   = EEPROM.read(0);
+
+    for (i=0; i<4 ; i++) {
+        status[i] = readLong(1+4*i);
+    }
+
+    return status;
+}
+
+void SWEeprom::write()
+{
+    char oldVersion;
+    long oldStatus[4];
+    int  i;
     long value;
 
-    EEPROM.begin(sizeof(SWEeprom));
-    for (i=0; i<5 ; i++) {
-        if (olddata.status[i] != newdata.status[i]){
-            value = newdata.status[i];
+    oldVersion = EEPROM.read(0);
+    for (i=0; i<4 ; i++) {
+        oldStatus[i] = readLong(1+4*i);
+    }
+    
+    if (oldVersion != version) {
+        EEPROM.write(0,version);
+    }
+    for (i=0; i<4 ; i++) {
+        if (oldStatus[i] != status[i]){
+            value = status[i];
             EEPROM.write(4+4*i, value % 256);
             value = value / 256;
             EEPROM.write(3+4*i, value % 256);
@@ -53,4 +77,32 @@ void writeSwEEPROM(SWEeprom newdata)
         }
     }
     EEPROM.commit();
+    Ewritten = true;
+}
+
+long * SWEeprom::getStatus(){
+    return status;
+}
+
+void SWEeprom::setStatus(int key, long value)
+{
+    Ewritten = false;
+    status[key] = value;
+}
+
+void SWEeprom::decStatus(int key, long value)
+{
+    Ewritten = false;
+    status[key] -= value;
+}
+
+void SWEeprom::incStatus(int key, long value)
+{
+    Ewritten = false;
+    status[key] += value;
+}
+
+bool SWEeprom::written()
+{
+    return Ewritten;
 }
