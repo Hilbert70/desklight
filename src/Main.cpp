@@ -3,7 +3,7 @@
 #include <Adafruit_PWMServoDriver.h>
 
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
+
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
@@ -14,6 +14,7 @@
 #include <ErriezRotaryFullStep.h>
 
 #include "sweeprom.h"
+#include "webserver.h"
 #include "ssidandpassword.h"
 
 #ifndef STASSID
@@ -64,8 +65,7 @@ long rotaryEncNewPosition;
 
 SWEeprom eepromdata;
 
-// Create a new web server
-ESP8266WebServer webserver(80);
+ESP8266WebServer server(80);
 
 void updateLED(long what[])
 {
@@ -186,6 +186,9 @@ void setup()
     Serial.println("Ready");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+
+
+    WebServerBegin(&server);
 
     pwm.begin();
     pwm1.begin();
@@ -367,4 +370,5 @@ void loop()
     }
     
     ArduinoOTA.handle();
+    server.handleClient();
 }
