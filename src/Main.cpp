@@ -12,9 +12,9 @@
 #include "Button.h"
 #include "Menu.h"
 #include <ErriezRotaryFullStep.h>
+#include <ESP8266WebServer.h>
 
 #include "sweeprom.h"
-#include "webserver.h"
 #include "ssidandpassword.h"
 
 #ifndef STASSID
@@ -66,6 +66,24 @@ long rotaryEncNewPosition;
 SWEeprom eepromdata;
 
 ESP8266WebServer server(80);
+
+void handleRoot();
+void handleNotFound();
+
+long StrtoLong(String str){
+    long value=0;
+    int i,len;
+    
+    len = str.length();
+    for (i=0; i<len;i++){
+        if (isDigit(str[i])) {
+            value = value*10 + str[i] - '0';
+        } else {
+            break;
+        }
+    }
+    return value;
+}
 
 void updateLED(long what[])
 {
@@ -132,7 +150,7 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 0.3");
+    Serial.println("Booting deskLight 0.4");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
     WiFi.hostname("desklight");
@@ -144,8 +162,9 @@ void setup()
         ESP.restart();
     }
 
-    
-    
+    server.on("/", handleRoot);
+    server.onNotFound(handleNotFound);
+    server.begin();
 
     ArduinoOTA.onStart([]() {
         String type;
@@ -188,8 +207,6 @@ void setup()
     Serial.println(WiFi.localIP());
 
 
-    WebServerBegin(&server);
-
     pwm.begin();
     pwm1.begin();
     // In theory the internal oscillator is 25MHz but it really isn't
@@ -224,6 +241,8 @@ void loop()
     int  menu;
     int  sign;
     long * status;
+    
+    server.handleClient();
 
     status = eepromdata.getStatus();
 
@@ -370,5 +389,98 @@ void loop()
     }
     
     ArduinoOTA.handle();
-    server.handleClient();
+}
+
+void handleRoot()
+{
+    String message;
+    long * status = eepromdata.getStatus();
+    String hostname = "desklight";
+
+    long start =0, length=0, dim=0, colour=0;
+    int i;
+    bool hadStart  = false;
+    bool hadLength = false;
+    bool hadDim    = false;
+    bool hadColour = false;
+
+    for (i=0;i<server.args(); i++){
+        if (server.argName(i) == "start")  {
+            hadStart= true;
+            start = StrtoLong( server.arg(i) );
+            if (start > MAXBAR) start = MAXBAR;
+            if (start < 0) start = 0;
+        }
+        if  (server.argName(i) == "length"){
+            hadLength= true;
+            length = StrtoLong( server.arg(i) );
+            if (length > MAXBAR) length = MAXBAR;
+            if (length <1 ) length = 1;
+        } 
+        if (server.argName(i) == "dim") {
+            hadDim= true;
+            dim    = StrtoLong( server.arg(i) );
+            if (dim < 1 ) dim = 1;
+            if (dim > MAXLIGHT ) dim = MAXLIGHT;
+        }   
+        if (server.argName(i) == "colour") {
+            hadColour= true;
+            colour    = StrtoLong( server.arg(i) );
+            if (colour < 0 ) colour = 0;
+            if (colour > MAXMODES ) colour = MAXMODES-1;
+        }   
+    }
+    if (hadStart && hadLength && hadDim && hadColour) {
+        if (start > MAXBAR-length)  start = MAXBAR-length;
+        if (start + length > MAXBAR)  start =MAXBAR - length;
+        eepromdata.setStatus(ST_START,start);
+        eepromdata.setStatus(ST_LENGTH,length);
+        eepromdata.setStatus(ST_DIM,dim);
+        eepromdata.setStatus(ST_LEDS,colour);
+        eepromdata.write();
+        updateLED(status);
+        
+        // AUCH, update the global variable!!!
+        switch (barMenu.getState()){
+            case ST_DIM: // just dim
+                 rotaryEncNewPosition = dim;      
+            break;
+            case ST_START: // start'
+                rotaryEncNewPosition = start; 
+            break;
+            case ST_LENGTH: //length
+                rotaryEncNewPosition = length; 
+            case ST_LEDS: // bar while mode
+                rotaryEncNewPosition = colour; 
+            break;
+        }
+    }
+
+
+    message  = "<!DOCTYPE HTML>\r\n<html><h3>Alter " + hostname +"</h3><p>";
+    message += "<form method='post'>";
+    message += "<label>Start: </label><input name='start' length='2' type='number' min='0' max='"+String(MAXBAR-1)+"' value='"+String(status[ST_START])+"'/><br />";
+    message += "<label>Length: </label><input name='length' length='2' type='number' min='1' max='"+String(MAXBAR-1)+"' value='"+String(status[ST_LENGTH])+"'/><br />";
+    message += "<label>Brightness: </label><input name='dim' length='4' type='number' min='1' max='"+String(MAXLIGHT)+"' value='"+String(status[ST_DIM])+"'/><br />";
+    message += "<label>Colour: </label><input name='colour' length='2' type='number' min='0' max='"+String(MAXMODES-1)+"' value='"+String(status[ST_LEDS])+"'/><br />";
+    message += "<input type='submit'>";
+    message += "</form></html>";
+    server.send(200, "text/html", message);
+  //}
+}
+
+void handleNotFound()
+{
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET)?"GET":"POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i=0; i<server.args(); i++){
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
 }
