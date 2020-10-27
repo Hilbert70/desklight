@@ -460,7 +460,7 @@ void handleRoot()
     message  = "<!DOCTYPE HTML>\r\n<html><h3>Alter " + hostname +"</h3><p>";
     message += "<form method='post'>";
     message += "<label>Start: </label><input name='start' length='2' type='number' min='0' max='"+String(MAXBAR-1)+"' value='"+String(status[ST_START])+"'/><br />";
-    message += "<label>Length: </label><input name='length' length='2' type='number' min='1' max='"+String(MAXBAR-1)+"' value='"+String(status[ST_LENGTH])+"'/><br />";
+    message += "<label>Length: </label><input name='length' length='2' type='number' min='1' max='"+String(MAXBAR)+"' value='"+String(status[ST_LENGTH])+"'/><br />";
     message += "<label>Brightness: </label><input name='dim' length='4' type='number' min='1' max='"+String(MAXLIGHT)+"' value='"+String(status[ST_DIM])+"'/><br />";
     message += "<label>Colour: </label><input name='colour' length='2' type='number' min='0' max='"+String(MAXMODES-1)+"' value='"+String(status[ST_LEDS])+"'/><br />";
     message += "<input type='submit'>";
