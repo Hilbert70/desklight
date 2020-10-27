@@ -27,10 +27,16 @@ class SWEeprom {
         void incStatus(int key, long value);
         void decStatus(int key, long value);
         bool written();
+        void setSSID(char * newSSID);
+        void setPSK(char * newPSK);
         
     private:
+        // in eeporm (flash)
         char version;
         long status[4];
+        char ssid[32];    // wifi ssid
+        char psk[64];     // wifi password
+        // class helper varables
         bool Ewritten;
 };
 

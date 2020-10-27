@@ -46,7 +46,8 @@ long * SWEeprom::read()
     for (i=0; i<4 ; i++) {
         status[i] = readLong(1+4*i);
     }
-
+    // read ssid
+    // read psk
     return status;
 }
 
@@ -76,6 +77,8 @@ void SWEeprom::write()
             EEPROM.write(1+4*i, value / 256);
         }
     }
+    // write ssid
+    // write psk
     EEPROM.commit();
     Ewritten = true;
 }
@@ -105,4 +108,16 @@ void SWEeprom::incStatus(int key, long value)
 bool SWEeprom::written()
 {
     return Ewritten;
+}
+
+void SWEeprom::setSSID(char * newSSID)
+{
+    Ewritten = false;
+    // copy: ssid = newSSID;
+}
+
+void SWEeprom::setPSK(char * newPSK)
+{
+    Ewritten = false;
+    // copy: ssid = newPSK;
 }
