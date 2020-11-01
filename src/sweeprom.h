@@ -30,6 +30,11 @@ class SWEeprom {
         void setSSID(char * newSSID);
         void setPSK(char * newPSK);
         void setHostname(char * newHostname);
+
+        // just returns the pointer, you are not the owner ;-)
+        char * getSSID();
+        char * getPSK();
+        char * getHostname();
         
     private:
         // in eeporm (flash)

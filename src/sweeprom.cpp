@@ -30,12 +30,15 @@ long * SWEeprom::init()
             status[1]  = 4;
             status[2]  = 3;
             status[3]  = 2;
-        } else if (oldVersion == 1) {
-            // upgrade to version 2
-            ssid[0] = '\0';
-            psk[0]  = '\0';
-            hostname[0] = '\0';
-        }
+        } else {
+            read();
+            if (oldVersion == 1) {
+                // upgrade to version 2
+                ssid[0] = '\0';
+                psk[0]  = '\0';
+                hostname[0] = '\0';
+            }
+        }    
         version = EEPROMVERSION;
         write();
     } else {
@@ -176,4 +179,16 @@ void SWEeprom::setHostname(char * newHostname)
     strncpy(hostname,newHostname,len);
     hostname[len+1] = '\0';
     // copy: ssid = newSSID;
+}
+
+char * SWEeprom::getSSID(){
+    return ssid;
+}
+
+char * SWEeprom::getPSK(){
+    return psk;
+}
+
+char * SWEeprom::getHostname(){
+    return hostname;
 }

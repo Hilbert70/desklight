@@ -150,9 +150,25 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 0.4");
+    Serial.println("Booting deskLight 0.5");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
+    Serial.printf(" ESP8266 Chip id = %08X\n", ESP.getChipId());
+    
+    
+    status = eepromdata.init();
+    Serial.printf(" Hostname length = %d\n", strlen(eepromdata.getHostname()));
+    Serial.printf(" ssid length = %d\n", strlen(eepromdata.getSSID()));
+    Serial.printf(" psk length = %d\n", strlen(eepromdata.getPSK()));
+
+    Serial.print("Eeprom data: ");
+    for (i=0; i<4; i++) {
+        Serial.print(status[i]);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+
     WiFi.hostname("desklight");
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
@@ -164,6 +180,8 @@ void setup()
 
     server.on("/", handleRoot);
     server.onNotFound(handleNotFound);
+
+
     server.begin();
 
     ArduinoOTA.onStart([]() {
@@ -217,14 +235,6 @@ void setup()
     pwm1.setOscillatorFrequency(27000000);  // The int.osc. is closer to 27MHz
     pwm1.setPWMFreq(800);  // This is the maximum PWM frequency
     
-    status = eepromdata.init();
-
-    Serial.print("Eeprom data: ");
-    for (i=0; i<4; i++) {
-        Serial.print(status[i]);
-        Serial.print(" ");
-    }
-    Serial.println();
 
     
     rotaryEncOldPosition = status[0];
@@ -389,6 +399,11 @@ void loop()
     }
     
     ArduinoOTA.handle();
+}
+
+void handleRootAP()
+{
+
 }
 
 void handleRoot()
