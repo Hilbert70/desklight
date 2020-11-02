@@ -154,7 +154,7 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 0.5");
+    Serial.println("Booting deskLight 1.0");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
     Serial.printf(" ESP8266 Chip id = %08X\n", ESP.getChipId());
@@ -207,6 +207,7 @@ void setup()
     }
     if (inSTAmode) {
         server.on("/", handleRoot);
+        server.on("/settings", handleRootAP);
     } else {
         setupAPmode();
         server.on("/", handleRootAP);
@@ -497,16 +498,18 @@ void handleRootAP()
         ESP.restart();
 
     }
-    message  = "<!DOCTYPE HTML>\r\n<html><h3>Alter " + String(hostname) +"</h3>";
+    message  = "<!DOCTYPE HTML>\r\n<html>";
+    message += "<style>body { font: 16px Arial, sans-serif; }</style>";
+    message += "<body><h3>Alter " + String(hostname) +"</h3>";
     message += error;
     message += "<form method='post'>";
     message += "<label>Hostname: </label><input name='hostname' type='text' length='32' value='"+String(hostname)+"'/><br />";
     message += "<label>SSID: </label><input name='ssid' length='32' value='"+String(eepromdata.getSSID())+"' list=\"apList\"/><br />";
     message += apList;
-    message += "<label>Password: </label><input name='psk' type='text' length='64' value='"+String(eepromdata.getPSK())+"'/><br />";
+    message += "<label>Password: </label><input name='psk' type='password' length='64'/><br />";
     message += "<input type='submit'>";
     message += "</form>";
-    message += "</html>";
+    message += "</body></html>";
     server.send(200, "text/html", message);
 }
 
@@ -576,14 +579,17 @@ void handleRoot()
     }
 
 
-    message  = "<!DOCTYPE HTML>\r\n<html><h3>Alter " + String(hostname) +"</h3>";
+    message  = "<!DOCTYPE HTML>\r\n<html>";
+    message += "<style>body { font: 16px Arial, sans-serif; }</style>";
+    message += "<body><h3>Alter " + String(hostname) +"</h3>";
+    message += "<a href='settings'>Settings</a><br /><br />";
     message += "<form method='post'>";
     message += "<label>Start: </label><input name='start' length='2' type='number' min='0' max='"+String(MAXBAR-1)+"' value='"+String(status[ST_START])+"'/><br />";
     message += "<label>Length: </label><input name='length' length='2' type='number' min='1' max='"+String(MAXBAR)+"' value='"+String(status[ST_LENGTH])+"'/><br />";
     message += "<label>Brightness: </label><input name='dim' length='4' type='number' min='1' max='"+String(MAXLIGHT)+"' value='"+String(status[ST_DIM])+"'/><br />";
     message += "<label>Colour: </label><input name='colour' length='2' type='number' min='0' max='"+String(MAXMODES-1)+"' value='"+String(status[ST_LEDS])+"'/><br />";
     message += "<input type='submit'>";
-    message += "</form></html>";
+    message += "</form></body<</html>";
     server.send(200, "text/html", message);
   //}
 }
