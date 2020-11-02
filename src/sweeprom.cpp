@@ -74,7 +74,7 @@ long * SWEeprom::read()
     // next address at 49 + 64 = 113
     // read hostname
     for (i=0; i<32; i++){
-        ssid[i]=EEPROM.read(113+i);
+        hostname[i]=EEPROM.read(113+i);
     }
     len = strlen(hostname);
     if (len > 31 ) hostname[31] = '\0';
@@ -159,6 +159,19 @@ void SWEeprom::setSSID(char * newSSID)
     // copy: ssid = newSSID;
 }
 
+void SWEeprom::setSSID(String newSSID)
+{
+    int len,i;
+    Ewritten = false;
+    len = newSSID.length();
+    if (len > 31) len = 31;
+    for (i=0; i< 31; i++) {
+        ssid[i] = newSSID[i];
+    }
+    ssid[len+1] = '\0';
+    // copy: ssid = newSSID;
+}
+
 void SWEeprom::setPSK(char * newPSK)
 {
     int len;
@@ -170,6 +183,19 @@ void SWEeprom::setPSK(char * newPSK)
     // copy: ssid = newPSK;
 }
 
+void SWEeprom::setPSK(String newPSK)
+{
+    int len,i;
+    Ewritten = false;
+    len = newPSK.length();
+    if (len > 63) len = 63;
+    for (i=0; i< 31; i++) {
+        psk[i] = newPSK[i];
+    }
+    psk[len+1] = '\0';
+    // copy: ssid = newPSK;
+}
+
 void SWEeprom::setHostname(char * newHostname)
 {
     int len;
@@ -177,6 +203,19 @@ void SWEeprom::setHostname(char * newHostname)
     len = strlen(newHostname);
     if (len > 31) len = 31;
     strncpy(hostname,newHostname,len);
+    hostname[len+1] = '\0';
+    // copy: ssid = newSSID;
+}
+
+void SWEeprom::setHostname(String newHostname)
+{
+    int len,i;
+    Ewritten = false;
+    len = newHostname.length();
+    if (len > 31) len = 31;
+    for (i=0; i< 31; i++) {
+        hostname[i] = newHostname[i];
+    }
     hostname[len+1] = '\0';
     // copy: ssid = newSSID;
 }

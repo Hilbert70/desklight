@@ -15,15 +15,11 @@
 #include <ESP8266WebServer.h>
 
 #include "sweeprom.h"
-#include "ssidandpassword.h"
 
 #ifndef STASSID
 #define STASSID "your-ssid"
 #define STAPSK  "your-password"
 #endif
-
-const char* ssid = STASSID;
-const char* password = STAPSK;
 
 #define PIN_A   D5 //ky-040 clk pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
 #define PIN_B   D6 //ky-040 dt  pin,             add 100nF/0.1uF capacitors between pin & ground!!!
@@ -65,10 +61,14 @@ long rotaryEncNewPosition;
 
 SWEeprom eepromdata;
 
+String apList;
 ESP8266WebServer server(80);
 
 void handleRoot();
+void handleRootAP();
 void handleNotFound();
+
+void setupAPmode();
 
 long StrtoLong(String str){
     long value=0;
@@ -141,6 +141,10 @@ void setup()
 {
     int i;
     long * status;
+    char * hostname;
+    char * ssid;
+    char * psk;
+    bool inSTAmode;
 
     // Setup Serial which is useful for debugging
     // Use the Serial Monitor to view printed messages
@@ -155,8 +159,27 @@ void setup()
     // later the hostname comes from the web page
     Serial.printf(" ESP8266 Chip id = %08X\n", ESP.getChipId());
     
-    
     status = eepromdata.init();
+    hostname = eepromdata.getHostname();
+    ssid     = eepromdata.getSSID();
+    psk      = eepromdata.getPSK();
+
+    if (strlen(hostname) == 0) {
+        sprintf(hostname,"ESP_%08X",ESP.getChipId());
+        eepromdata.write();
+    }
+    
+    // debug stuff
+    if (strlen(hostname) !=0 ){
+        Serial.printf(" Hostname '%s'\n", hostname);
+    }
+    if (strlen(ssid) !=0 ){
+        Serial.printf(" SSID '%s'\n", ssid);
+    }
+    if (strlen(psk) !=0 ){
+        Serial.printf(" PSK '%s'\n", psk);
+    }
+
     Serial.printf(" Hostname length = %d\n", strlen(eepromdata.getHostname()));
     Serial.printf(" ssid length = %d\n", strlen(eepromdata.getSSID()));
     Serial.printf(" psk length = %d\n", strlen(eepromdata.getPSK()));
@@ -168,17 +191,27 @@ void setup()
     }
     Serial.println();
 
-
-    WiFi.hostname("desklight");
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-    while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-        Serial.println("Connection Failed! Rebooting...");
-        delay(5000);
-        ESP.restart();
+    inSTAmode = true;
+    WiFi.hostname(hostname);
+    if (strlen(ssid)!=0 && strlen(psk) != 0) {
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(ssid, psk);
+        Serial.println("Waiting for Wifi to connect"); 
+        while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+            delay(500);
+            inSTAmode = false;
+            break;
+        }
+    } else {
+        inSTAmode = false;
     }
-
-    server.on("/", handleRoot);
+    if (inSTAmode) {
+        server.on("/", handleRoot);
+    } else {
+        setupAPmode();
+        server.on("/", handleRootAP);
+    }
+        
     server.onNotFound(handleNotFound);
 
 
@@ -401,16 +434,87 @@ void loop()
     ArduinoOTA.handle();
 }
 
+void setupAPmode()
+{
+    char * hostname;
+    // start in AP mode
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    delay(100);
+    int n = WiFi.scanNetworks();
+    Serial.println("scan done");
+    apList = "<datalist id=\"apList\">";
+    if (n == 0) {
+        Serial.println("no networks found");
+    } else {
+        for (int i=0; i<n; i++) {
+            Serial.print("SSID ");
+            Serial.println(WiFi.SSID(i));
+            apList += "<option value=\"" + WiFi.SSID(i) +"\">"+ WiFi.SSID(i) +"</option>";
+        }
+    }
+    apList += "</datalist>";
+    delay(100);
+    hostname = eepromdata.getHostname();
+    Serial.printf("SSID '%s'\n",hostname);
+    WiFi.softAP(hostname, "12345678",6); // passfrase must be six or larger!
+    Serial.println("softap");
+} 
+
 void handleRootAP()
 {
+    String message;
+    char * hostname = eepromdata.getHostname();
+    int  i;
+    bool hadHostname = false;
+    bool hadSSID     = false;
+    bool hadPSK      = false;
+    String error = "";
 
+    for (i=0;i<server.args(); i++){
+        if (server.argName(i) == "hostname")  {
+            hadHostname= true;
+            eepromdata.setHostname(server.arg(i));
+        }
+        if  (server.argName(i) == "ssid"){
+            hadSSID= true;
+            eepromdata.setSSID(server.arg(i));
+        } 
+        if (server.argName(i) == "psk") {
+            if (server.arg(i).length()>7 ) {
+                hadPSK= true;
+                eepromdata.setPSK(server.arg(i));
+            } else {
+                error += "<p style=\"color:red;\">password has to be longer than 7 characters</p>";
+            }
+        }   
+    }
+    if (hadHostname && hadSSID && hadPSK) {
+        Serial.println("Writing eeprom.");
+        eepromdata.write();
+        delay(500);
+        Serial.println("Rebooting into new wifi!");
+        ESP.restart();
+
+    }
+    message  = "<!DOCTYPE HTML>\r\n<html><h3>Alter " + String(hostname) +"</h3>";
+    message += error;
+    message += "<form method='post'>";
+    message += "<label>Hostname: </label><input name='hostname' type='text' length='32' value='"+String(hostname)+"'/><br />";
+    message += "<label>SSID: </label><input name='ssid' length='32' value='"+String(eepromdata.getSSID())+"' list=\"apList\"/><br />";
+    message += apList;
+    message += "<label>Password: </label><input name='psk' type='text' length='64' value='"+String(eepromdata.getPSK())+"'/><br />";
+    message += "<input type='submit'>";
+    message += "</form>";
+    message += "</html>";
+    server.send(200, "text/html", message);
 }
 
 void handleRoot()
 {
     String message;
     long * status = eepromdata.getStatus();
-    String hostname = "desklight";
+    char * hostname = eepromdata.getHostname();
 
     long start =0, length=0, dim=0, colour=0;
     int i;
@@ -472,7 +576,7 @@ void handleRoot()
     }
 
 
-    message  = "<!DOCTYPE HTML>\r\n<html><h3>Alter " + hostname +"</h3><p>";
+    message  = "<!DOCTYPE HTML>\r\n<html><h3>Alter " + String(hostname) +"</h3>";
     message += "<form method='post'>";
     message += "<label>Start: </label><input name='start' length='2' type='number' min='0' max='"+String(MAXBAR-1)+"' value='"+String(status[ST_START])+"'/><br />";
     message += "<label>Length: </label><input name='length' length='2' type='number' min='1' max='"+String(MAXBAR)+"' value='"+String(status[ST_LENGTH])+"'/><br />";

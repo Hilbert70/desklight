@@ -6,6 +6,7 @@
  *
  * structure of the eeporm and support functions
  */
+#include <arduino.h>
 #include <EEPROM.h>
 
 #define EEPROMVERSION 2
@@ -30,6 +31,9 @@ class SWEeprom {
         void setSSID(char * newSSID);
         void setPSK(char * newPSK);
         void setHostname(char * newHostname);
+        void setSSID(String newSSID);
+        void setPSK(String newPSK);
+        void setHostname(String newHostname);
 
         // just returns the pointer, you are not the owner ;-)
         char * getSSID();
