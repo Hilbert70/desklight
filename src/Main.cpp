@@ -2,9 +2,9 @@
 #include <Arduino.h>
 #include <Adafruit_PWMServoDriver.h>
 
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 
-#include <ESP8266mDNS.h>
+//#include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
@@ -12,7 +12,7 @@
 #include "Button.h"
 #include "Menu.h"
 #include <ErriezRotaryFullStep.h>
-#include <ESP8266WebServer.h>
+#include <WebServer.h>
 
 #include "sweeprom.h"
 
@@ -62,7 +62,7 @@ long rotaryEncNewPosition;
 SWEeprom eepromdata;
 
 String apList;
-ESP8266WebServer server(80);
+WebServer server(80);
 
 void handleRoot();
 void handleRootAP();
@@ -146,6 +146,11 @@ void setup()
     char * psk;
     bool inSTAmode;
 
+    uint32_t chipID = 0;
+    for(int i=0; i<17; i=i+8) {
+        chipID |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+    }
+    
     // Setup Serial which is useful for debugging
     // Use the Serial Monitor to view printed messages
 
@@ -157,7 +162,7 @@ void setup()
     Serial.println("Booting deskLight 1.0");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
-    Serial.printf(" ESP8266 Chip id = %08X\n", ESP.getChipId());
+    Serial.printf(" ESP8266 Chip id = %08X\n", chipID);
     
     status = eepromdata.init();
     hostname = eepromdata.getHostname();
@@ -165,7 +170,7 @@ void setup()
     psk      = eepromdata.getPSK();
 
     if (strlen(hostname) == 0) {
-        sprintf(hostname,"ESP_%08X",ESP.getChipId());
+        sprintf(hostname,"ESP_%08X",chipID);
         eepromdata.write();
     }
     
@@ -192,7 +197,7 @@ void setup()
     Serial.println();
 
     inSTAmode = true;
-    WiFi.hostname(hostname);
+    WiFi.setHostname(hostname);
     if (strlen(ssid)!=0 && strlen(psk) != 0) {
         WiFi.mode(WIFI_STA);
         WiFi.begin(ssid, psk);
