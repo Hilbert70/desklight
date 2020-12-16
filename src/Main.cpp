@@ -21,10 +21,13 @@
 #define STAPSK  "your-password"
 #endif
 
-#define PIN_A   D5 //ky-040 clk pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
-#define PIN_B   D6 //ky-040 dt  pin,             add 100nF/0.1uF capacitors between pin & ground!!!
-#define BUTTON  D7 //ky-040 sw  pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
-#define PIXEL_PIN    2 // D4 
+// for esp 32 use gpio25, 26,27 and 14
+//                       original esp8266 pins
+#define PIN_A      25 // D5 yellow    clk pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
+#define PIN_B      26 // D6 blue      dt  pin,             add 100nF/0.1uF capacitors between pin & ground!!!
+#define BUTTON     27 // D7 green     sw  pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
+
+#define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
 // number of elements in the bar, for testing just 3
 #define MAXBAR 16
@@ -43,6 +46,8 @@ Menu barMenu(MAXMENU,pixels,menuColours);
 
 // object initialization
 // called this way, it uses the default address 0x40
+// gpio22 i2c scl D1 blue
+// gpio21 i2c sda D2 white
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x41);
 
