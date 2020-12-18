@@ -2,9 +2,9 @@
 #include <Arduino.h>
 #include <Adafruit_PWMServoDriver.h>
 
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 
-#include <ESP8266mDNS.h>
+//#include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
@@ -12,7 +12,7 @@
 #include "Button.h"
 #include "Menu.h"
 #include <ErriezRotaryFullStep.h>
-#include <ESP8266WebServer.h>
+#include <WebServer.h>
 
 #include "sweeprom.h"
 
@@ -21,10 +21,13 @@
 #define STAPSK  "your-password"
 #endif
 
-#define PIN_A   D5 //ky-040 clk pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
-#define PIN_B   D6 //ky-040 dt  pin,             add 100nF/0.1uF capacitors between pin & ground!!!
-#define BUTTON  D7 //ky-040 sw  pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
-#define PIXEL_PIN    2 // D4 
+// for esp 32 use gpio25, 26,27 and 14
+//                       original esp8266 pins
+#define PIN_A      25 // D5 yellow    clk pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
+#define PIN_B      26 // D6 blue      dt  pin,             add 100nF/0.1uF capacitors between pin & ground!!!
+#define BUTTON     27 // D7 green     sw  pin, interrupt & add 100nF/0.1uF capacitors between pin & ground!!!
+
+#define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
 // number of elements in the bar, for testing just 3
 #define MAXBAR 16
@@ -43,6 +46,8 @@ Menu barMenu(MAXMENU,pixels,menuColours);
 
 // object initialization
 // called this way, it uses the default address 0x40
+// gpio22 i2c scl D1 blue
+// gpio21 i2c sda D2 white
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x41);
 
@@ -62,7 +67,7 @@ long rotaryEncNewPosition;
 SWEeprom eepromdata;
 
 String apList;
-ESP8266WebServer server(80);
+WebServer server(80);
 
 void handleRoot();
 void handleRootAP();
@@ -146,6 +151,11 @@ void setup()
     char * psk;
     bool inSTAmode;
 
+    uint32_t chipID = 0;
+    for(int i=0; i<17; i=i+8) {
+        chipID |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+    }
+    
     // Setup Serial which is useful for debugging
     // Use the Serial Monitor to view printed messages
 
@@ -157,7 +167,7 @@ void setup()
     Serial.println("Booting deskLight 1.0");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
-    Serial.printf(" ESP8266 Chip id = %08X\n", ESP.getChipId());
+    Serial.printf(" ESP8266 Chip id = %08X\n", chipID);
     
     status = eepromdata.init();
     hostname = eepromdata.getHostname();
@@ -165,7 +175,7 @@ void setup()
     psk      = eepromdata.getPSK();
 
     if (strlen(hostname) == 0) {
-        sprintf(hostname,"ESP_%08X",ESP.getChipId());
+        sprintf(hostname,"ESP_%08X",chipID);
         eepromdata.write();
     }
     
@@ -192,7 +202,7 @@ void setup()
     Serial.println();
 
     inSTAmode = true;
-    WiFi.hostname(hostname);
+    WiFi.setHostname(hostname);
     if (strlen(ssid)!=0 && strlen(psk) != 0) {
         WiFi.mode(WIFI_STA);
         WiFi.begin(ssid, psk);
