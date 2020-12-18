@@ -30,6 +30,9 @@ long * SWEeprom::init()
             status[1]  = 4;
             status[2]  = 3;
             status[3]  = 2;
+            ssid[0] = '\0';
+            psk[0]  = '\0';
+            hostname[0] = '\0';
         } else {
             read();
             if (oldVersion == 1) {
