@@ -7,7 +7,13 @@
  * structure of the eeporm and support functions
  */
 #include <arduino.h>
-#include <EEPROM.h>
+
+extern "C" {
+#include "esp_partition.h"
+#include "esp_err.h"
+#include "nvs_flash.h"
+#include "nvs.h"
+}
 
 #define EEPROMVERSION 2
 
@@ -40,6 +46,8 @@ class SWEeprom {
         char * getPSK();
         char * getHostname();
         
+        String errorMessage;
+        esp_err_t    errorCode;       // mostly nvs error codes
     private:
         // in eeporm (flash)
         char version;
@@ -49,6 +57,8 @@ class SWEeprom {
         char hostname[32]; // limit hostname to 32 chars
         // class helper varables
         bool Ewritten;
+    protected:
+        nvs_handle  _nvs_handle;
 };
 
 #endif

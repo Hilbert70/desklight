@@ -7,21 +7,51 @@
 #include "sweeprom.h"
 
 
-long readLong(int addres){
-    return ( (EEPROM.read(addres)*256+EEPROM.read(1+addres))*256 + EEPROM.read(2+addres))*256 + EEPROM.read(3+addres);
-}
+//long readLong(int addres){
+//    return ( (EEPROM.read(addres)*256+EEPROM.read(1+addres))*256 + EEPROM.read(2+addres))*256 + EEPROM.read(3+addres);
+//}
 
 SWEeprom::SWEeprom()
 {
+ 
     Ewritten = false;
-    EEPROM.begin(512);
 }
 
 long * SWEeprom::init()
 {
-    char oldVersion;
+    uint8_t oldVersion;
 
-    oldVersion = EEPROM.read(0);
+    // make sure we can do something with the nvs
+    errorCode = nvs_flash_init();
+    if (errorCode != ESP_OK) {
+        errorMessage = "Warning: NVS. Cannot init flash mem";
+        if (errorCode != ESP_ERR_NVS_NO_FREE_PAGES) {
+            return NULL;
+        }
+        // erase and reinit
+        errorMessage = "NVS. Try reinit the partition";
+        const esp_partition_t *nvs_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_NVS, NULL);
+        if (nvs_partition == NULL) {
+            return NULL;
+        }
+        errorCode = esp_partition_erase_range(nvs_partition, 0, nvs_partition->size);
+        errorCode = nvs_flash_init();
+        if (errorCode) {
+            return NULL;
+        }
+        errorMessage = "NVS. Partition re-formatted";
+    }
+    errorCode = nvs_open("desklight", NVS_READWRITE, &_nvs_handle);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: Failed to open";
+        return NULL;
+    }
+
+    errorCode = nvs_get_u8(_nvs_handle, "oldVersion", &oldVersion);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to read oldVersion";
+        return NULL;
+    }
 
     if (oldVersion != EEPROMVERSION) {
         if (oldVersion <= 0) {
