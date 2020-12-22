@@ -468,7 +468,8 @@ void setupAPmode()
     delay(100);
     hostname = eepromdata.getHostname();
     Serial.printf("SSID '%s'\n",hostname);
-    WiFi.softAP(hostname, "12345678",6); // passfrase must be six or larger!
+    WiFi.softAP(hostname, "123456789",6); // passfrase must be six or larger!
+    //WiFi.softAP("test_host_1234", "123456789",6); // passfrase must be six or larger!
     Serial.println("softap");
 } 
 
@@ -503,6 +504,8 @@ void handleRootAP()
     if (hadHostname && hadSSID && hadPSK) {
         Serial.println("Writing eeprom.");
         eepromdata.write();
+        Serial.print("Written ");
+        Serial.print(eepromdata.errorMessage);
         delay(500);
         Serial.println("Rebooting into new wifi!");
         ESP.restart();
