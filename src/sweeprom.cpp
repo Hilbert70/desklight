@@ -85,6 +85,7 @@ long * SWEeprom::read()
 {
     int len;
     uint32_t statusValue;
+    size_t required_size;
 
     errorCode = nvs_get_u8(_nvs_handle, "version", &version);
     if (errorCode != ESP_OK) {
@@ -118,7 +119,8 @@ long * SWEeprom::read()
     status[3]= (long )statusValue;
 
     // read ssid
-    errorCode = nvs_get_str(_nvs_handle, "ssid", ssid, NULL);
+    errorCode = nvs_get_str(_nvs_handle, "ssid", NULL, &required_size);
+    errorCode = nvs_get_str(_nvs_handle, "ssid", ssid, &required_size);
     if (errorCode != ESP_OK) {
         errorMessage = "NVS: failed to read ssid";
         return NULL;
@@ -126,8 +128,9 @@ long * SWEeprom::read()
     len = strlen(ssid);
     if (len > 31 ) ssid[31] = '\0';
 
-    // read psk 
-    errorCode = nvs_get_str(_nvs_handle, "psk", psk, NULL);
+    // read psk
+    errorCode = nvs_get_str(_nvs_handle, "psk", NULL, &required_size); 
+    errorCode = nvs_get_str(_nvs_handle, "psk", psk, &required_size);
     if (errorCode != ESP_OK) {
         errorMessage = "NVS: failed to read psk";
         return NULL;
@@ -136,7 +139,8 @@ long * SWEeprom::read()
     if (len > 63 ) psk[63] = '\0';
     // next address at 49 + 64 = 113
     // read hostname
-    errorCode = nvs_get_str(_nvs_handle, "hostname", hostname, NULL);
+    errorCode = nvs_get_str(_nvs_handle, "hostname", NULL, &required_size);
+    errorCode = nvs_get_str(_nvs_handle, "hostname", hostname, &required_size);
     if (errorCode != ESP_OK) {
         errorMessage = "NVS: failed to read hostname";
         return NULL;
@@ -196,6 +200,9 @@ void SWEeprom::write()
         return;
     }
     errorCode  = nvs_commit(_nvs_handle);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to commit";
+    }
     Ewritten = true;
 }
 

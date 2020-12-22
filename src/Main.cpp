@@ -164,12 +164,15 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 1.0");
+    Serial.println("Booting deskLight 1.1");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
     Serial.printf(" ESP8266 Chip id = %08X\n", chipID);
     
     status = eepromdata.init();
+    if (eepromdata.errorCode != ESP_OK) {
+        Serial.println(eepromdata.errorMessage);
+    }
     hostname = eepromdata.getHostname();
     ssid     = eepromdata.getSSID();
     psk      = eepromdata.getPSK();
@@ -469,7 +472,6 @@ void setupAPmode()
     hostname = eepromdata.getHostname();
     Serial.printf("SSID '%s'\n",hostname);
     WiFi.softAP(hostname, "123456789",6); // passfrase must be six or larger!
-    //WiFi.softAP("test_host_1234", "123456789",6); // passfrase must be six or larger!
     Serial.println("softap");
 } 
 
