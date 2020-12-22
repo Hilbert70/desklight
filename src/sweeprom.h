@@ -50,7 +50,7 @@ class SWEeprom {
         esp_err_t    errorCode;       // mostly nvs error codes
     private:
         // in eeporm (flash)
-        char version;
+        uint8_t version;
         long status[4];
         char ssid[32];     // wifi ssid
         char psk[64];      // wifi password

@@ -47,9 +47,9 @@ long * SWEeprom::init()
         return NULL;
     }
 
-    errorCode = nvs_get_u8(_nvs_handle, "oldVersion", &oldVersion);
+    errorCode = nvs_get_u8(_nvs_handle, "version", &oldVersion);
     if (errorCode != ESP_OK) {
-        errorMessage = "NVS: failed to read oldVersion";
+        errorMessage = "NVS: failed to read version";
         return NULL;
     }
 
@@ -83,31 +83,63 @@ long * SWEeprom::init()
 
 long * SWEeprom::read()
 {
-    int i,len;
-    version   = EEPROM.read(0);
-    // next starts at address 1
-    for (i=0; i<4 ; i++) {
-        // long is 4 bytes
-        status[i] = readLong(1+4*i);
+    int len;
+    uint32_t statusValue;
+
+    errorCode = nvs_get_u8(_nvs_handle, "version", &version);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to read version";
+        return NULL;
     }
-    // next starts at address 1 + 4 + 4 + 4 + 4 = 17
+    // yup the status code is durty
+    errorCode = nvs_get_u32(_nvs_handle, "status0", &statusValue);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to read status0";
+        return NULL;
+    }
+    status[0]= (long )statusValue;
+    errorCode = nvs_get_u32(_nvs_handle, "status1", &statusValue);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to read status1";
+        return NULL;
+    }
+    status[1]= (long )statusValue;
+    errorCode = nvs_get_u32(_nvs_handle, "status2", &statusValue);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to read status2";
+        return NULL;
+    }
+    status[2]= (long )statusValue;
+    errorCode = nvs_get_u32(_nvs_handle, "status3", &statusValue);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to read status3";
+        return NULL;
+    }
+    status[3]= (long )statusValue;
+
     // read ssid
-    for (i=0; i<32; i++){
-        ssid[i]=EEPROM.read(17+i);
+    errorCode = nvs_get_str(_nvs_handle, "ssid", ssid, NULL);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to read ssid";
+        return NULL;
     }
     len = strlen(ssid);
     if (len > 31 ) ssid[31] = '\0';
-    // next starts at addres 17+32 = 49
+
     // read psk 
-    for (i=0; i<64; i++){
-        psk[i]=EEPROM.read(49+i);
+    errorCode = nvs_get_str(_nvs_handle, "psk", psk, NULL);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to read psk";
+        return NULL;
     }
     len = strlen(psk);
     if (len > 63 ) psk[63] = '\0';
     // next address at 49 + 64 = 113
     // read hostname
-    for (i=0; i<32; i++){
-        hostname[i]=EEPROM.read(113+i);
+    errorCode = nvs_get_str(_nvs_handle, "hostname", hostname, NULL);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to read hostname";
+        return NULL;
     }
     len = strlen(hostname);
     if (len > 31 ) hostname[31] = '\0';
@@ -117,40 +149,53 @@ long * SWEeprom::read()
 
 void SWEeprom::write()
 {
-    char oldVersion;
-    long oldStatus[4];
-    int  i;
-    long value;
+    errorCode = nvs_set_u8(_nvs_handle, "version", version);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to write version";
+        return;
+    }
+    // yup the status code is durty
+    errorCode = nvs_set_u32(_nvs_handle, "status0", (uint32_t )status[0]);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to write status0";
+        return;
+    }
+    errorCode = nvs_set_u32(_nvs_handle, "status1", (uint32_t )status[1]);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to write status1";
+        return;
+    }
+    errorCode = nvs_set_u32(_nvs_handle, "status2", (uint32_t )status[2]);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to write status2";
+        return;
+    }
+    errorCode = nvs_set_u32(_nvs_handle, "status3", (uint32_t )status[3]);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to write status3";
+        return;
+    }
 
-    oldVersion = EEPROM.read(0);
-    for (i=0; i<4 ; i++) {
-        oldStatus[i] = readLong(1+4*i);
+    // write ssid
+    errorCode = nvs_set_str(_nvs_handle, "ssid", ssid);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to write ssid";
+        return;
     }
-    
-    if (oldVersion != version) {
-        EEPROM.write(0,version);
+
+    // write psk 
+    errorCode = nvs_set_str(_nvs_handle, "psk", psk);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to write psk";
+        return;
     }
-    for (i=0; i<4 ; i++) {
-        if (oldStatus[i] != status[i]){
-            value = status[i];
-            EEPROM.write(4+4*i, value % 256);
-            value = value / 256;
-            EEPROM.write(3+4*i, value % 256);
-            value = value / 256;
-            EEPROM.write(2+4*i, value % 256);
-            EEPROM.write(1+4*i, value / 256);
-        }
+    // write hostname
+    errorCode = nvs_set_str(_nvs_handle, "hostname", hostname);
+    if (errorCode != ESP_OK) {
+        errorMessage = "NVS: failed to write hostname";
+        return;
     }
-    // next starts at address 1 + 4 + 4 + 4 + 4 = 17
-    // read ssid
-    for (i=0; i<32; i++){ EEPROM.write(17+i,ssid[i]); }
-    // next starts at addres 17+32 = 49
-    // read psk 
-    for (i=0; i<64; i++){ EEPROM.write(49+i,psk[i]); }
-    // next starts at address 49 + 63 = 113
-    // read hostname
-    for (i=0; i<32; i++) { EEPROM.write(113+i,hostname[i]); }
-    EEPROM.commit();
+    errorCode  = nvs_commit(_nvs_handle);
     Ewritten = true;
 }
 
