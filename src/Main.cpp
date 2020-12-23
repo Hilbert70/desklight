@@ -187,10 +187,10 @@ void setup()
         Serial.printf(" Hostname '%s'\n", hostname);
     }
     if (strlen(ssid) !=0 ){
-        Serial.printf(" SSID '%s'\n", ssid);
+        Serial.printf(" SSID '%s'\n",ssid); 
     }
     if (strlen(psk) !=0 ){
-        Serial.printf(" PSK '%s'\n", psk);
+        Serial.printf(" PSK '***'\n");// not going to show ;-)
     }
 
     Serial.printf(" Hostname length = %d\n", strlen(eepromdata.getHostname()));
