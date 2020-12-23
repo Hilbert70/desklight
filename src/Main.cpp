@@ -164,7 +164,7 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 1.2");
+    Serial.println("Booting deskLight 1.2.1");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
     Serial.printf(" ESP32 Chip id = %08X\n", chipID);
