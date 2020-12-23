@@ -77,7 +77,8 @@ long * SWEeprom::init()
     } else {
         read();
     }
-
+    Ewritten = true;
+    
     return status;
 }
 
@@ -126,7 +127,8 @@ long * SWEeprom::read()
         return NULL;
     }
     len = strlen(ssid);
-    if (len > 31 ) ssid[31] = '\0';
+    if (len > 31 ) { len = 31; }
+    ssid[len] = '\0';
 
     // read psk
     errorCode = nvs_get_str(_nvs_handle, "psk", NULL, &required_size); 
@@ -136,7 +138,8 @@ long * SWEeprom::read()
         return NULL;
     }
     len = strlen(psk);
-    if (len > 63 ) psk[63] = '\0';
+    if (len > 63 ) { len = 63; }
+    psk[len] = '\0';
     // next address at 49 + 64 = 113
     // read hostname
     errorCode = nvs_get_str(_nvs_handle, "hostname", NULL, &required_size);
@@ -146,7 +149,8 @@ long * SWEeprom::read()
         return NULL;
     }
     len = strlen(hostname);
-    if (len > 31 ) hostname[31] = '\0';
+    if (len > 31 ) { len = 31; }
+    hostname[len] = '\0';
     // next address at 113 + 32 = 145
     return status;
 }
