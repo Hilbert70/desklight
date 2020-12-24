@@ -209,7 +209,7 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 2.0");
+    Serial.println("Booting deskLight 2.0.1");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
     Serial.printf(" ESP32 Chip id = %08X\n", chipID);
@@ -680,7 +680,7 @@ void handlepost()
     DeserializationError err= deserializeJson(doc, server.arg("plain"));
     if (err) {
         // json error
-        message =  "{ \"error\": " + String(err.c_str()) +", \"message\": \"jason parse error\"}";
+        message =  "{ \"error\": " + String(err.c_str()) +", \"message\": \"json parse error\"}";
         server.send(400, "application/json", message); 
         return;
     }
@@ -720,6 +720,8 @@ void handlepost()
         eepromdata.setStatus(ST_LEDS,colour);
         eepromdata.write();
         updateLED(status);
+        // AUCH, update the global variable!!!
+        updateGlobals(start,length,brightness,colour);
     } else {
         // payload incomplete
         message =  "{ \"error\":  112, \"message\": \"" + message + "\" }";
