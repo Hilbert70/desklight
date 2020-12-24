@@ -1,5 +1,6 @@
 // Include Libraries
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <Adafruit_PWMServoDriver.h>
 
 #include <WiFi.h>
@@ -51,11 +52,6 @@ Menu barMenu(MAXMENU,pixels,menuColours);
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x41);
 
-// 0 dimmer status; ST_DIM
-// 1 bar length, minimum = 1; ST_LENGTH
-// 2 bar position; ST_START
-//long status[4] = {50,1,1,1};
-
 // define vars for testing menu
 const int timeout = 5000;       //define timeout of 5 sec
 long time0;
@@ -72,6 +68,12 @@ WebServer server(80);
 void handleRoot();
 void handleRootAP();
 void handleNotFound();
+// Rest interface
+//  api/v1/light
+void handlepost();  // post
+void handleget();  // get
+// patch, not supported, yet
+// delete, never going to be supported
 
 void setupAPmode();
 
@@ -88,6 +90,32 @@ long StrtoLong(String str){
         }
     }
     return value;
+}
+
+void handleStart(long *start)
+{
+    if (*start > MAXBAR) *start = MAXBAR;
+    if (*start < 0) *start = 0;
+}
+void handleLength(long *length)
+{
+    if (*length > MAXBAR) *length = MAXBAR;
+    if (*length <1 ) *length = 1;
+}
+void handleBrightness(long *brightness)
+{
+    if (*brightness < 1 ) *brightness = 1;
+    if (*brightness > MAXLIGHT ) *brightness = MAXLIGHT;
+}
+void handleColour(long *colour)
+{
+    if (*colour < 0 ) *colour = 0;
+    if (*colour > MAXMODES ) *colour = MAXMODES-1;
+}
+void limitStart(long *start, long length)
+{
+    if (*start > MAXBAR-length)  *start = MAXBAR-length;
+    if (*start + length > MAXBAR)  *start =MAXBAR - length;
 }
 
 void updateLED(long what[])
@@ -138,7 +166,24 @@ void updateLED(long what[])
     }
 }
 
-
+// dirty, very dirty!!!
+void updateGlobals(long start,long length, long brightness, long colour)
+{
+    switch (barMenu.getState()){
+    case ST_DIM: // just dim
+        rotaryEncNewPosition = brightness;      
+        break;
+    case ST_START: // start'
+        rotaryEncNewPosition = start; 
+        break;
+    case ST_LENGTH: //length
+        rotaryEncNewPosition = length; 
+        break;
+    case ST_LEDS: // bar while mode
+        rotaryEncNewPosition = colour; 
+        break;
+    }
+}
 
 
 // Setup the essentials for your circuit to work. It runs first every time your circuit is powered with electricity.
@@ -164,7 +209,7 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 1.2.1");
+    Serial.println("Booting deskLight 2.0");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
     Serial.printf(" ESP32 Chip id = %08X\n", chipID);
@@ -223,6 +268,9 @@ void setup()
     if (inSTAmode) {
         server.on("/", handleRoot);
         server.on("/settings", handleRootAP);
+        // api functions
+        server.on("/api/v1/state", HTTP_GET,  handleget);
+        server.on("/api/v1/state", HTTP_POST, handlepost);
     } else {
         setupAPmode();
         server.on("/", handleRootAP);
@@ -548,31 +596,26 @@ void handleRoot()
         if (server.argName(i) == "start")  {
             hadStart= true;
             start = StrtoLong( server.arg(i) );
-            if (start > MAXBAR) start = MAXBAR;
-            if (start < 0) start = 0;
+            handleStart(&start);
         }
         if  (server.argName(i) == "length"){
             hadLength= true;
             length = StrtoLong( server.arg(i) );
-            if (length > MAXBAR) length = MAXBAR;
-            if (length <1 ) length = 1;
+            handleLength(&length);
         } 
         if (server.argName(i) == "dim") {
             hadDim= true;
             dim    = StrtoLong( server.arg(i) );
-            if (dim < 1 ) dim = 1;
-            if (dim > MAXLIGHT ) dim = MAXLIGHT;
+            handleBrightness(&dim);
         }   
         if (server.argName(i) == "colour") {
             hadColour= true;
             colour    = StrtoLong( server.arg(i) );
-            if (colour < 0 ) colour = 0;
-            if (colour > MAXMODES ) colour = MAXMODES-1;
+            handleColour(&colour);
         }   
     }
     if (hadStart && hadLength && hadDim && hadColour) {
-        if (start > MAXBAR-length)  start = MAXBAR-length;
-        if (start + length > MAXBAR)  start =MAXBAR - length;
+        limitStart(&start, length);
         eepromdata.setStatus(ST_START,start);
         eepromdata.setStatus(ST_LENGTH,length);
         eepromdata.setStatus(ST_DIM,dim);
@@ -581,19 +624,7 @@ void handleRoot()
         updateLED(status);
         
         // AUCH, update the global variable!!!
-        switch (barMenu.getState()){
-            case ST_DIM: // just dim
-                 rotaryEncNewPosition = dim;      
-            break;
-            case ST_START: // start'
-                rotaryEncNewPosition = start; 
-            break;
-            case ST_LENGTH: //length
-                rotaryEncNewPosition = length; 
-            case ST_LEDS: // bar while mode
-                rotaryEncNewPosition = colour; 
-            break;
-        }
+        updateGlobals(start,length,dim,colour);
     }
 
 
@@ -626,4 +657,89 @@ void handleNotFound()
     message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
   }
   server.send(404, "text/plain", message);
+}
+
+// rest api
+void handlepost()
+{
+    StaticJsonDocument<300> doc;
+    long * status = eepromdata.getStatus();
+    long start =0, length=0, brightness=0, colour=0;
+    bool hadStart      = false;
+    bool hadLength     = false;
+    bool hadBrightness = false;
+    bool hadColour     = false;
+    String message = "";
+
+    if (server.hasArg("plain") == false) {
+    //handle error here
+        server.send(400, "application/json", "{}");
+        return;
+    }
+    
+    DeserializationError err= deserializeJson(doc, server.arg("plain"));
+    if (err) {
+        // json error
+        message =  "{ \"error\": " + String(err.c_str()) +", \"message\": \"jason parse error\"}";
+        server.send(400, "application/json", message); 
+        return;
+    }
+    hadStart      = doc.containsKey("start");
+    hadLength     = doc.containsKey("length");
+    hadBrightness = doc.containsKey("brightness");
+    hadColour     = doc.containsKey("colour");
+    if (hadStart) {
+        start =doc["start"];
+        handleStart(&start);
+    } else {
+        message = "Missing 'start'. ";
+    }
+    if (hadLength) {
+        length = doc["length"];
+        handleLength(&length);
+    } else {
+        message += "Missing 'length'. ";
+    }
+    if (hadBrightness) {
+        brightness = doc["brightness"];
+        handleBrightness(&brightness);
+    } else {
+        message += "Missing 'brightness'. ";
+    }
+    if (hadColour) {
+        colour = doc["colour"];
+        handleColour(&colour);
+    } else {
+        message += "Missing 'colour'. ";
+    }
+    if (hadStart && hadLength && hadBrightness && hadColour) {
+        limitStart(&start, length);
+        eepromdata.setStatus(ST_START,start);
+        eepromdata.setStatus(ST_LENGTH,length);
+        eepromdata.setStatus(ST_DIM,brightness);
+        eepromdata.setStatus(ST_LEDS,colour);
+        eepromdata.write();
+        updateLED(status);
+    } else {
+        // payload incomplete
+        message =  "{ \"error\":  112, \"message\": \"" + message + "\" }";
+        server.send(400, "application/json", message); 
+        return; 
+    }
+    server.send(200, "application/json", "{}"); 
+}
+
+void handleget()
+{
+    long * status = eepromdata.getStatus();
+    String response;
+    StaticJsonDocument<300> doc;
+
+    Serial.println("Get light state");
+    doc["brightness"] = status[ST_DIM];
+    doc["colour"] = status[ST_LEDS];
+    doc["start"] = status[ST_START];
+    doc["length"] = status[ST_LENGTH];
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
 }
