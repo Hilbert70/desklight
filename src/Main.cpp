@@ -16,6 +16,7 @@
 #include <WebServer.h>
 
 #include "sweeprom.h"
+#include "functions.h"
 
 #ifndef STASSID
 #define STASSID "your-ssid"
@@ -30,11 +31,6 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-// number of elements in the bar, for testing just 3
-#define MAXBAR 16
-#define MAXMENU 4
-#define MAXMODES 6
-#define MAXLIGHT 4095
 
 
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
@@ -79,50 +75,8 @@ void handlePressPatch();
 
 void setupAPmode();
 
-long StrtoLong(String str){
-    long value=0;
-    int i,len;
-    
-    len = str.length();
-    for (i=0; i<len;i++){
-        if (isDigit(str[i])) {
-            value = value*10 + str[i] - '0';
-        } else {
-            break;
-        }
-    }
-    return value;
-}
-
-void handleStart(long *start)
-{
-    if (*start > MAXBAR) *start = MAXBAR;
-    if (*start < 0) *start = 0;
-}
-void handleLength(long *length)
-{
-    if (*length > MAXBAR) *length = MAXBAR;
-    if (*length <1 ) *length = 1;
-}
-void handleBrightness(long *brightness)
-{
-    if (*brightness < 1 ) *brightness = 1;
-    if (*brightness > MAXLIGHT ) *brightness = MAXLIGHT;
-}
-void handleColour(long *colour)
-{
-    if (*colour < 0 ) *colour = 0;
-    if (*colour > MAXMODES ) *colour = MAXMODES-1;
-}
-void limitStart(long *start, long length)
-{
-    if (*start > MAXBAR-length)  *start = MAXBAR-length;
-    if (*start + length > MAXBAR)  *start =MAXBAR - length;
-}
-
 void updateLED(long what[])
 {
-    
     // only update when we have a change
     // Drive each PWM in a 'wave'
     for (int i =0 ; i<MAXBAR ; i++ ){
