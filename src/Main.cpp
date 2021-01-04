@@ -72,6 +72,8 @@ void handleNotFound();
 //  api/v1/light
 void handlepost();  // post
 void handleget();  // get
+void handleIncPatch();
+void handlePressPatch();
 // patch, not supported, yet
 // delete, never going to be supported
 
@@ -271,6 +273,8 @@ void setup()
         // api functions
         server.on("/api/v1/state", HTTP_GET,  handleget);
         server.on("/api/v1/state", HTTP_POST, handlepost);
+        server.on("/api/v1/inc",   HTTP_PATCH, handleIncPatch);
+        server.on("/api/v1/press",   HTTP_PATCH, handlePressPatch);
     } else {
         setupAPmode();
         server.on("/", handleRootAP);
@@ -744,4 +748,13 @@ void handleget()
     doc["length"] = status[ST_LENGTH];
     serializeJson(doc, response);
     server.send(200, "application/json", response);
+}
+
+void handleIncPatch()
+{
+
+}
+void handlePressPatch()
+{
+    
 }
