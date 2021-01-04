@@ -69,6 +69,7 @@ void handleNotFound();
 void handlepost();  // post
 void handleget();  // get
 void handleIncPatch();
+void handleDecPatch();
 void handlePressPatch();
 // patch, not supported, yet
 // delete, never going to be supported
@@ -165,7 +166,7 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 2.0.1");
+    Serial.println("Booting deskLight 2.1");
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
     Serial.printf(" ESP32 Chip id = %08X\n", chipID);
@@ -228,6 +229,7 @@ void setup()
         server.on("/api/v1/state", HTTP_GET,  handleget);
         server.on("/api/v1/state", HTTP_POST, handlepost);
         server.on("/api/v1/inc",   HTTP_PATCH, handleIncPatch);
+        server.on("/api/v1/dec",   HTTP_PATCH, handleDecPatch);
         server.on("/api/v1/press",   HTTP_PATCH, handlePressPatch);
     } else {
         setupAPmode();
@@ -279,18 +281,12 @@ void setup()
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
 
-
     pwm.begin();
     pwm1.begin();
-    // In theory the internal oscillator is 25MHz but it really isn't
-    // that precise. You can 'calibrate' by tweaking this number till
-    // you get the frequency you're expecting!
     pwm.setOscillatorFrequency(27000000);
     pwm.setPWMFreq(800);  // This is the maximum PWM frequency
     pwm1.setOscillatorFrequency(27000000);  // The int.osc. is closer to 27MHz
     pwm1.setPWMFreq(800);  // This is the maximum PWM frequency
-    
-
     
     rotaryEncOldPosition = status[0];
     rotaryEncNewPosition = status[0];
@@ -587,7 +583,7 @@ void handleRoot()
 
 
     message  = "<!DOCTYPE HTML>\r\n<html>";
-    message += "<style>body { font: 16px Arial, sans-serif; }</style>";
+    message += "<style>body { font: 16pt Arial, sans-serif; }</style>";
     message += "<body><h3>Alter " + String(hostname) +"</h3>";
     message += "<a href='settings'>Settings</a><br /><br />";
     message += "<form method='post'>";
@@ -708,6 +704,12 @@ void handleIncPatch()
 {
 
 }
+
+void handleDecPatch()
+{
+
+}
+
 void handlePressPatch()
 {
     
