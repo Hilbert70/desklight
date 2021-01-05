@@ -31,7 +31,7 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-
+#define DESKLIGHT_VERSION "2.1"
 
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
 
@@ -170,7 +170,7 @@ void setup()
 
     Serial.begin(115200);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("Booting deskLight 2.1");
+    Serial.println("Booting deskLight " DESKLIGHT_VERSION);
     // Hostname defaults to esp8266-[ChipID]
     // later the hostname comes from the web page
     Serial.printf(" ESP32 Chip id = %08X\n", chipID);
@@ -593,7 +593,7 @@ void handleRoot()
 
     message  = "<!DOCTYPE HTML>\r\n<html>";
     message += "<style>body { font: 16pt Arial, sans-serif; }</style>";
-    message += "<body><h3>Alter " + String(hostname) +"</h3>";
+    message += "<body><h3>Alter " + String(hostname) + "<br />Version: " + DESKLIGHT_VERSION +"</h3>";
     message += "<a href='settings'>Settings</a><br /><br />";
     message += "<form method='post'>";
     message += "<label>Start: </label><input name='start' length='2' type='number' min='0' max='"+String(MAXBAR-1)+"' value='"+String(status[ST_START])+"'/><br />";
