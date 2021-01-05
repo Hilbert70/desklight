@@ -68,10 +68,14 @@ void handleNotFound();
 //  api/v1/light
 void handlepost();  // post
 void handleget();  // get
-void handleIncPatch();
-void handleDecPatch();
-void handlePressPatch();
-// patch, not supported, yet
+void handleStartIncPatch();
+void handleStartDecPatch();
+void handleLengthIncPatch();
+void handleLengthDecPatch();
+void handleBrightnessIncPatch();
+void handleBrightnessDecPatch();
+void handleColourIncPatch();
+void handleColourDecPatch();
 // delete, never going to be supported
 
 void setupAPmode();
@@ -228,9 +232,14 @@ void setup()
         // api functions
         server.on("/api/v1/state", HTTP_GET,  handleget);
         server.on("/api/v1/state", HTTP_POST, handlepost);
-        server.on("/api/v1/inc",   HTTP_PATCH, handleIncPatch);
-        server.on("/api/v1/dec",   HTTP_PATCH, handleDecPatch);
-        server.on("/api/v1/press",   HTTP_PATCH, handlePressPatch);
+        server.on("/api/v1/start/inc",   HTTP_PATCH, handleStartIncPatch);
+        server.on("/api/v1/start/dec",   HTTP_PATCH, handleStartDecPatch);
+        server.on("/api/v1/length/inc",   HTTP_PATCH, handleLengthIncPatch);
+        server.on("/api/v1/length/dec",   HTTP_PATCH, handleLengthDecPatch);
+        server.on("/api/v1/brightness/inc",   HTTP_PATCH, handleBrightnessIncPatch);
+        server.on("/api/v1/brightness/dec",   HTTP_PATCH, handleBrightnessDecPatch);
+        server.on("/api/v1/colour/inc",   HTTP_PATCH, handleColourIncPatch);
+        server.on("/api/v1/colour/dec",   HTTP_PATCH, handleColourDecPatch);
     } else {
         setupAPmode();
         server.on("/", handleRootAP);
@@ -700,17 +709,157 @@ void handleget()
     server.send(200, "application/json", response);
 }
 
-void handleIncPatch()
+void responseStartLenth(long start, long length)
 {
-
+    String response;
+    StaticJsonDocument<30> doc;
+    doc["start"] = start;
+    doc["length"] = length;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
+}
+void responseVar(String variable, long value)
+{
+    String response;
+    StaticJsonDocument<30> doc;
+    doc[variable] = value;
+    serializeJson(doc, response);
+    server.send(200, "application/json", response);
 }
 
-void handleDecPatch()
+void handleStartIncPatch()
 {
-
+    long * status = eepromdata.getStatus();
+    long start  = status[ST_START];
+    long length = status[ST_LENGTH];
+    start++;
+    handleStart(&start);
+    limitStart(&start, length);
+    eepromdata.setStatus(ST_START,start);
+    eepromdata.write();
+    updateLED(status);
+    // AUCH, update the global variable!!!
+    updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
+    responseStartLenth(start, length);
 }
-
-void handlePressPatch()
+void handleStartDecPatch()
 {
-    
+    long * status = eepromdata.getStatus();
+    long start  = status[ST_START];
+    long length = status[ST_LENGTH];
+    start--;
+    handleStart(&start);
+    limitStart(&start, length);
+    eepromdata.setStatus(ST_START,start);
+    eepromdata.write();
+    updateLED(status);
+    // AUCH, update the global variable!!!
+    updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
+
+    responseStartLenth(start, length);
+}
+void handleLengthIncPatch()
+{
+    long * status = eepromdata.getStatus();
+    long start  = status[ST_START];
+    long length = status[ST_LENGTH];
+    length++;
+    handleLength(&length);
+    limitStart(&start, length);
+    eepromdata.setStatus(ST_START,start);
+    eepromdata.setStatus(ST_LENGTH,length);
+    eepromdata.write();
+    updateLED(status);
+    // AUCH, update the global variable!!!
+    updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
+    responseStartLenth(start, length);
+}
+void handleLengthDecPatch()
+{
+    long * status = eepromdata.getStatus();
+    long start  = status[ST_START];
+    long length = status[ST_LENGTH];
+    length--;
+    handleLength(&length);
+    limitStart(&start, length);
+    eepromdata.setStatus(ST_START,start);
+    eepromdata.setStatus(ST_LENGTH,length);
+    eepromdata.write();
+    updateLED(status);
+    // AUCH, update the global variable!!!
+    updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
+    responseStartLenth(start, length);
+}
+void handleBrightnessIncPatch()
+{   
+    long * status = eepromdata.getStatus();
+    long brightness  = status[ST_DIM];
+    //brightness--;
+    if (brightness < 10) {
+        brightness++;
+    } else if (brightness >= 10 && brightness < 100 ) {
+        brightness+=5;
+    } else if (brightness >= 100 && brightness < 1000 ) {
+        brightness+=10;
+    } else {
+        // larger that 1000
+        brightness+= 100;
+    }
+    handleBrightness(&brightness);
+    eepromdata.setStatus(ST_DIM,brightness);
+    eepromdata.write();
+    updateLED(status);
+    // AUCH, update the global variable!!!
+    updateGlobals(status[ST_START],status[ST_LENGTH],brightness,status[ST_LEDS]);
+    responseVar("brightness", brightness);
+}
+void handleBrightnessDecPatch()
+{
+    long * status = eepromdata.getStatus();
+    long brightness  = status[ST_DIM];
+    //brightness--;
+    if (brightness < 10) {
+        brightness--;
+    } else if (brightness >= 10 && brightness < 100 ) {
+        brightness-=5;
+    } else if (brightness >= 100 && brightness < 1000 ) {
+        brightness-=10;
+    } else {
+        // larger that 1000
+        brightness-= 100;
+    }
+    handleBrightness(&brightness);
+    eepromdata.setStatus(ST_DIM,brightness);
+    eepromdata.write();
+    updateLED(status);
+    // AUCH, update the global variable!!!
+    updateGlobals(status[ST_START],status[ST_LENGTH],brightness,status[ST_LEDS]);
+    responseVar("brightness", brightness);    
+}
+void handleColourIncPatch()
+{
+    long * status = eepromdata.getStatus();
+    long colour  = status[ST_LEDS];
+    colour++;
+    handleColour(&colour);
+    eepromdata.setStatus(ST_LEDS,colour);
+    eepromdata.write();
+    updateLED(status);
+    // AUCH, update the global variable!!!
+    updateGlobals(status[ST_START],status[ST_LENGTH],status[ST_DIM],colour);
+    responseVar("colour", colour);
+}
+void handleColourDecPatch()
+{
+    long * status = eepromdata.getStatus();
+    long colour  = status[ST_LEDS];
+    colour--;
+    handleColour(&colour);
+    eepromdata.setStatus(ST_LEDS,colour);
+    eepromdata.write();
+    updateLED(status);
+    // AUCH, update the global variable!!!
+    updateGlobals(status[ST_START],status[ST_LENGTH],status[ST_DIM],colour);
+    responseVar("colour", colour);
+
 }
