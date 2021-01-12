@@ -4,8 +4,8 @@
 #include <Adafruit_PWMServoDriver.h>
 
 #include <WiFi.h>
+#include <AsyncUDP.h>
 
-//#include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
@@ -60,6 +60,7 @@ SWEeprom eepromdata;
 
 String apList;
 WebServer server(80);
+AsyncUDP udp;
 
 void handleRoot();
 void handleRootAP();
@@ -225,6 +226,40 @@ void setup()
         }
     } else {
         inSTAmode = false;
+    }
+
+    if(udp.listen( 54321)) {
+        Serial.println("UDP connected");
+        udp.onPacket([](AsyncUDPPacket packet) {
+            char * hostname = eepromdata.getHostname();
+            Serial.print("UDP Packet Type: ");
+            Serial.print(packet.isBroadcast()?"Broadcast":packet.isMulticast()?"Multicast":"Unicast");
+            Serial.print(", From: ");
+            Serial.print(packet.remoteIP());
+            Serial.print(":");
+            Serial.print(packet.remotePort());
+            Serial.print(", To: ");
+            Serial.print(packet.localIP());
+            Serial.print(":");
+            Serial.print(packet.localPort());
+            Serial.print(", Length: ");
+            Serial.print(packet.length());
+            Serial.print(", Data: ");
+            Serial.write(packet.data(), packet.length());
+            Serial.println();
+            
+            String response;
+            StaticJsonDocument<300> doc;
+
+            doc["hostname"] = hostname;
+            doc["apiversion"] = "v1";
+            serializeJson(doc, response);
+            // check for message size
+            // friendly name must be returned and api version
+            // create select lamp page, in this page a lamp is selected and stored 
+            //reply to the client
+            packet.printf(response.c_str());
+        });
     }
     if (inSTAmode) {
         server.on("/", handleRoot);
