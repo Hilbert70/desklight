@@ -31,7 +31,7 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-#define DESKLIGHT_VERSION "2.1"
+#define DESKLIGHT_VERSION "2.2"
 
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
 
@@ -562,17 +562,24 @@ void handleRootAP()
         ESP.restart();
 
     }
-    message  = "<!DOCTYPE HTML>\r\n<html>";
-    message += "<style>body { font: 16px Arial, sans-serif; }</style>";
+    message  = "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
+    message += "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}";
+    message += ".container { display: flex; justify-content: center;}";
+    message += "input {font-size: 20px; width: 100px ;align-self: flex-end;}";
+    message += "form {text-align: right;}";
+    message += "</style></head><body>";
+            
+    message += "<h1>ESP32 Web Server</h1>";
     message += "<body><h3>Alter " + String(hostname) +"</h3>";
     message += error;
+    message += "<div class=\"container\">";
     message += "<form method='post'>";
     message += "<label>Hostname: </label><input name='hostname' type='text' length='32' value='"+String(hostname)+"'/><br />";
     message += "<label>SSID: </label><input name='ssid' length='32' value='"+String(eepromdata.getSSID())+"' list=\"apList\"/><br />";
     message += apList;
     message += "<label>Password: </label><input name='psk' type='password' length='64'/><br />";
     message += "<input type='submit'>";
-    message += "</form>";
+    message += "</form></div>";
     message += "</body></html>";
     server.send(200, "text/html", message);
 }
@@ -625,18 +632,24 @@ void handleRoot()
         updateGlobals(start,length,dim,colour);
     }
 
-
-    message  = "<!DOCTYPE HTML>\r\n<html>";
-    message += "<style>body { font: 16pt Arial, sans-serif; }</style>";
-    message += "<body><h3>Alter " + String(hostname) + "<br />Version: " + DESKLIGHT_VERSION +"</h3>";
+    message  = "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
+    message += "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}";
+    message += ".container { display: flex; justify-content: center;}";
+    message += "input {font-size: 20px; width: 100px ;align-self: flex-end;}";
+    message += "form {text-align: right;}";
+    message += "</style></head><body>";
+            
+    message += "<h1>ESP32 Web Server</h1>";
+    message += "<h3>" + String(hostname) + "<br />Version: " + DESKLIGHT_VERSION +"</h3>";
     message += "<a href='settings'>Settings</a><br /><br />";
+    message += "<div class=\"container\">";
     message += "<form method='post'>";
     message += "<label>Start: </label><input name='start' length='2' type='number' min='0' max='"+String(MAXBAR-1)+"' value='"+String(status[ST_START])+"'/><br />";
     message += "<label>Length: </label><input name='length' length='2' type='number' min='1' max='"+String(MAXBAR)+"' value='"+String(status[ST_LENGTH])+"'/><br />";
     message += "<label>Brightness: </label><input name='dim' length='4' type='number' min='1' max='"+String(MAXLIGHT)+"' value='"+String(status[ST_DIM])+"'/><br />";
     message += "<label>Colour: </label><input name='colour' length='2' type='number' min='0' max='"+String(MAXMODES-1)+"' value='"+String(status[ST_LEDS])+"'/><br />";
     message += "<input type='submit'>";
-    message += "</form></body<</html>";
+    message += "</form></div></body></html>";
     server.send(200, "text/html", message);
   //}
 }
