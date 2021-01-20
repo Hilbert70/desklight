@@ -328,9 +328,9 @@ void setup()
     pwm.begin();
     pwm1.begin();
     pwm.setOscillatorFrequency(27000000);
-    pwm.setPWMFreq(800);  // This is the maximum PWM frequency
+    pwm.setPWMFreq(1600);  // This is the maximum PWM frequency
     pwm1.setOscillatorFrequency(27000000);  // The int.osc. is closer to 27MHz
-    pwm1.setPWMFreq(800);  // This is the maximum PWM frequency
+    pwm1.setPWMFreq(1600);  // This is the maximum PWM frequency
     
     rotaryEncOldPosition = status[0];
     rotaryEncNewPosition = status[0];
@@ -565,12 +565,12 @@ void handleRootAP()
     message  = "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
     message += "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}";
     message += ".container { display: flex; justify-content: center;}";
-    message += "input {font-size: 20px; width: 100px ;align-self: flex-end;}";
+    message += "input {font-size: 20px; width: 200px ;align-self: flex-end;}";
     message += "form {text-align: right;}";
     message += "</style></head><body>";
             
     message += "<h1>ESP32 Web Server</h1>";
-    message += "<body><h3>Alter " + String(hostname) +"</h3>";
+    message += "<h3>" + String(hostname) +"</h3>";
     message += error;
     message += "<div class=\"container\">";
     message += "<form method='post'>";
