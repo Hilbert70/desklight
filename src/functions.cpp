@@ -48,23 +48,6 @@ void handleBrightness(long *brightness)
 }
 void handleColour(long *colour)
 {
-    if (*colour < 0 ) *colour = 0;
-    if (*colour > MAXMODES ) *colour = MAXMODES-1;
+    if (*colour < 0 ) *colour = MAXMODES-1;
+    if (*colour > MAXMODES ) *colour = 0;
 }
-/*
-void limitStart(long *start, long *length, boolean doingStart)
-{
-    if (!doingStart) {
-        if ((*length) % 2 ==1 ) {
-            (*start)--;
-        }
-        if (*start < 0) {
-            *start = 0;
-            (*length)++;
-            if (*length > MAXBAR) *length = MAXBAR;
-        }
-    }
-    if (*start > MAXBAR-*length)  *start = MAXBAR-*length;
-    if (*start + *length > MAXBAR)  *start =MAXBAR - *length;
-}
-*/
