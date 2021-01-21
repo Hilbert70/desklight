@@ -16,15 +16,30 @@ long StrtoLong(String str){
     return value;
 }
 
-void handleStart(long *start)
+void handleStart(long *start, long length)
 {
     if (*start > MAXBAR) *start = MAXBAR;
     if (*start < 0) *start = 0;
+    if (*start > MAXBAR-length)  *start = MAXBAR-length;
 }
-void handleLength(long *length)
+void handleLength(long *start,long *length, long increment)
 {
-    if (*length > MAXBAR) *length = MAXBAR;
     if (*length <1 ) *length = 1;
+    if (*length > MAXBAR) {
+        *length = MAXBAR;
+        *start  = 0;
+    }
+    if (*length % 2 == 1){
+        *start = *start - increment;
+    }
+    if ((*start) < 0) {
+        *start  = 0;
+         *length = *length + 1;
+        if (*length > MAXBAR) {
+            *length = MAXBAR;
+        }
+    }
+    if (*start + *length > MAXBAR)  *start =MAXBAR - *length;
 }
 void handleBrightness(long *brightness)
 {
@@ -36,8 +51,20 @@ void handleColour(long *colour)
     if (*colour < 0 ) *colour = 0;
     if (*colour > MAXMODES ) *colour = MAXMODES-1;
 }
-void limitStart(long *start, long length)
+/*
+void limitStart(long *start, long *length, boolean doingStart)
 {
-    if (*start > MAXBAR-length)  *start = MAXBAR-length;
-    if (*start + length > MAXBAR)  *start =MAXBAR - length;
+    if (!doingStart) {
+        if ((*length) % 2 ==1 ) {
+            (*start)--;
+        }
+        if (*start < 0) {
+            *start = 0;
+            (*length)++;
+            if (*length > MAXBAR) *length = MAXBAR;
+        }
+    }
+    if (*start > MAXBAR-*length)  *start = MAXBAR-*length;
+    if (*start + *length > MAXBAR)  *start =MAXBAR - *length;
 }
+*/

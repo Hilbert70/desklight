@@ -31,7 +31,7 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-#define DESKLIGHT_VERSION "2.2"
+#define DESKLIGHT_VERSION "2.3"
 
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
 
@@ -51,6 +51,7 @@ Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x41);
 // define vars for testing menu
 const int timeout = 5000;       //define timeout of 5 sec
 long time0;
+boolean doneTimeout = false;
 long lastMenuUpdate;
 long timeButton;
 long rotaryEncOldPosition;
@@ -258,17 +259,42 @@ void setup()
             Serial.write(packet.data(), packet.length());
             Serial.println();
             
-            String response;
-            StaticJsonDocument<300> doc;
+            if (packet.length() ==2) {
+                char msg[3];
+                strncpy(msg, (const char*)packet.data(),2);
+                msg[2]='\0';
+                Serial.println(msg);
+                if (strncmp(msg, "si",2) == 0) {
+                    handleStartInc();
+                } else if (strncmp(msg, "sd",2) == 0) {
+                    handleStartDec();
+                } else if (strncmp(msg, "li",2) == 0) {
+                    handleLengthInc();
+                } else if (strncmp(msg, "ld",2) == 0) {
+                    handleLengthDec();
+                } else if (strncmp(msg, "bi",2) == 0) {
+                    handleBrightnessInc();
+                } else if (strncmp(msg, "bd",2) == 0) {
+                    handleBrightnessDec();
+                } else if (strncmp(msg, "ci",2) == 0) {
+                    handleColourInc();
+                } else if (strncmp(msg, "cd",2) == 0) {
+                    handleColourDec();
+                }
+            } else {
+                String response;
+                StaticJsonDocument<300> doc;
 
-            doc["hostname"] = hostname;
-            doc["apiversion"] = "v1";
-            serializeJson(doc, response);
+                doc["hostname"] = hostname;
+                doc["apiversion"] = "v1";
+                serializeJson(doc, response);
+                packet.printf(response.c_str());
+            }
             // check for message size
             // friendly name must be returned and api version
             // create select lamp page, in this page a lamp is selected and stored 
             //reply to the client
-            packet.printf(response.c_str());
+
         });
     }
     if (inSTAmode) {
@@ -399,6 +425,7 @@ void loop()
         lastMenuUpdate = millis();
         barMenu.setState(barMenu.getState() +1);
         time0 = millis();
+        doneTimeout = false;
         timeButton = millis();
         menu = barMenu.getState();
         rotaryEncNewPosition = status[menu];
@@ -471,6 +498,7 @@ void loop()
     if (rotaryEncNewPosition != status[menu]) {
         eepromdata.setStatus(menu , rotaryEncNewPosition);
         time0 = millis(); // don't go out of the menu
+        doneTimeout = false;
         Serial.print(F("Pos: "));
         Serial.print(rotaryEncNewPosition);
         Serial.print(F(" Button1: "));
@@ -496,11 +524,12 @@ void loop()
         barMenu.setState( 0 ); // just dim
         rotaryEncNewPosition = status[0];
     }
-    if (millis() - lastMenuUpdate > timeout && !eepromdata.written()) {
+    if (millis() - lastMenuUpdate > timeout && !eepromdata.written() && !doneTimeout) {
         // after timeout no actions (5 sec), update the eeprom.
         // The eeprom only writes the changes
         Serial.println("Write eeprom");
         eepromdata.write();
+        doneTimeout= true;
     }
     
     ArduinoOTA.handle();
@@ -611,12 +640,12 @@ void handleRoot()
         if (server.argName(i) == "start")  {
             hadStart= true;
             start = StrtoLong( server.arg(i) );
-            handleStart(&start);
+            handleStart(&start,length);
         }
         if  (server.argName(i) == "length"){
             hadLength= true;
             length = StrtoLong( server.arg(i) );
-            handleLength(&length);
+            handleLength(&start,&length,0);
         } 
         if (server.argName(i) == "dim") {
             hadDim= true;
@@ -630,7 +659,6 @@ void handleRoot()
         }   
     }
     if (hadStart && hadLength && hadDim && hadColour) {
-        limitStart(&start, length);
         eepromdata.setStatus(ST_START,start);
         eepromdata.setStatus(ST_LENGTH,length);
         eepromdata.setStatus(ST_DIM,dim);
@@ -711,13 +739,13 @@ void handlepost()
     hadColour     = doc.containsKey("colour");
     if (hadStart) {
         start =doc["start"];
-        handleStart(&start);
+        handleStart(&start,length);
     } else {
         message = "Missing 'start'. ";
     }
     if (hadLength) {
         length = doc["length"];
-        handleLength(&length);
+        handleLength(&start,&length,0);
     } else {
         message += "Missing 'length'. ";
     }
@@ -734,7 +762,6 @@ void handlepost()
         message += "Missing 'colour'. ";
     }
     if (hadStart && hadLength && hadBrightness && hadColour) {
-        limitStart(&start, length);
         eepromdata.setStatus(ST_START,start);
         eepromdata.setStatus(ST_LENGTH,length);
         eepromdata.setStatus(ST_DIM,brightness);
@@ -791,14 +818,12 @@ void handleStartInc()
     long start  = status[ST_START];
     long length = status[ST_LENGTH];
     start++;
-    handleStart(&start);
-    limitStart(&start, length);
+    handleStart(&start, length);
     eepromdata.setStatus(ST_START,start);
-    eepromdata.write();
-    updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
-    responseStartLenth(start, length);
+    eepromdata.write();
+    updateLED(status);
 }
 void handleStartIncPatch()
 {
@@ -815,13 +840,12 @@ void handleStartDec()
     long start  = status[ST_START];
     long length = status[ST_LENGTH];
     start--;
-    handleStart(&start);
-    limitStart(&start, length);
+    handleStart(&start, length);
     eepromdata.setStatus(ST_START,start);
-    eepromdata.write();
-    updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
+    eepromdata.write();
+    updateLED(status);
 }
 
 void handleStartDecPatch()
@@ -839,15 +863,13 @@ void handleLengthInc()
     long start  = status[ST_START];
     long length = status[ST_LENGTH];
     length++;
-    handleLength(&length);
-    limitStart(&start, length);
+    handleLength(&start, &length, 1);
     eepromdata.setStatus(ST_START,start);
     eepromdata.setStatus(ST_LENGTH,length);
-    eepromdata.write();
-    updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
-    
+    eepromdata.write();
+    updateLED(status);    
 }
 void handleLengthIncPatch()
 {
@@ -864,14 +886,13 @@ void handleLengthDec()
     long start  = status[ST_START];
     long length = status[ST_LENGTH];
     length--;
-    handleLength(&length);
-    limitStart(&start, length);
+    handleLength(&start,&length,-1);
     eepromdata.setStatus(ST_START,start);
     eepromdata.setStatus(ST_LENGTH,length);
-    eepromdata.write();
-    updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);    
+    eepromdata.write();
+    updateLED(status);
 }
 void handleLengthDecPatch()
 {
@@ -899,13 +920,12 @@ void handleBrightnessInc()
     }
     handleBrightness(&brightness);
     eepromdata.setStatus(ST_DIM,brightness);
-    eepromdata.write();
-    updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(status[ST_START],status[ST_LENGTH],brightness,status[ST_LEDS]);
-    responseVar("brightness", brightness);
+    eepromdata.write();
+    updateLED(status);
 }
-void handleBrightnessIncPatch();
+void handleBrightnessIncPatch()
 {   
     long * status = eepromdata.getStatus();
     long brightness  = status[ST_DIM];
@@ -930,10 +950,10 @@ void handleBrightnessDec()
     }
     handleBrightness(&brightness);
     eepromdata.setStatus(ST_DIM,brightness);
-    eepromdata.write();
-    updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(status[ST_START],status[ST_LENGTH],brightness,status[ST_LEDS]);
+    eepromdata.write();
+    updateLED(status);
 }
 
 void handleBrightnessDecPatch()

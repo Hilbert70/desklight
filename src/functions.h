@@ -10,10 +10,9 @@
 #define MAXLIGHT 4095
 
 long StrtoLong(String str);
-void handleStart(long *start);
-void handleLength(long *length);
+void handleStart(long *start, long length);
+void handleLength(long *start,long *length, long increment);
 void handleBrightness(long *brightness);
 void handleColour(long *colour);
-void limitStart(long *start, long length);
 
 #endif
