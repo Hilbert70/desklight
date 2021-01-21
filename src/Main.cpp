@@ -69,6 +69,15 @@ void handleNotFound();
 //  api/v1/light
 void handlepost();  // post
 void handleget();  // get
+void handleStartInc();
+void handleStartDec();
+void handleLengthInc();
+void handleLengthDec();
+void handleBrightnessInc();
+void handleBrightnessDec();
+void handleColourInc();
+void handleColourDec();
+// api handlers
 void handleStartIncPatch();
 void handleStartDecPatch();
 void handleLengthIncPatch();
@@ -77,6 +86,7 @@ void handleBrightnessIncPatch();
 void handleBrightnessDecPatch();
 void handleColourIncPatch();
 void handleColourDecPatch();
+
 // delete, never going to be supported
 
 void setupAPmode();
@@ -775,7 +785,7 @@ void responseVar(String variable, long value)
     server.send(200, "application/json", response);
 }
 
-void handleStartIncPatch()
+void handleStartInc()
 {
     long * status = eepromdata.getStatus();
     long start  = status[ST_START];
@@ -790,7 +800,16 @@ void handleStartIncPatch()
     updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
     responseStartLenth(start, length);
 }
-void handleStartDecPatch()
+void handleStartIncPatch()
+{
+    long * status = eepromdata.getStatus();
+    long start  = status[ST_START];
+    long length = status[ST_LENGTH];
+    handleStartInc();
+    responseStartLenth(start, length);
+}
+
+void handleStartDec()
 {
     long * status = eepromdata.getStatus();
     long start  = status[ST_START];
@@ -803,10 +822,18 @@ void handleStartDecPatch()
     updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
+}
 
+void handleStartDecPatch()
+{
+    long * status = eepromdata.getStatus();
+    long start  = status[ST_START];
+    long length = status[ST_LENGTH];
+    handleStartDec();
     responseStartLenth(start, length);
 }
-void handleLengthIncPatch()
+
+void handleLengthInc()
 {
     long * status = eepromdata.getStatus();
     long start  = status[ST_START];
@@ -820,9 +847,18 @@ void handleLengthIncPatch()
     updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
+    
+}
+void handleLengthIncPatch()
+{
+    long * status = eepromdata.getStatus();
+    long start  = status[ST_START];
+    long length = status[ST_LENGTH];
+    handleLengthInc();
     responseStartLenth(start, length);
 }
-void handleLengthDecPatch()
+
+void handleLengthDec()
 {
     long * status = eepromdata.getStatus();
     long start  = status[ST_START];
@@ -835,10 +871,18 @@ void handleLengthDecPatch()
     eepromdata.write();
     updateLED(status);
     // AUCH, update the global variable!!!
-    updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
+    updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);    
+}
+void handleLengthDecPatch()
+{
+    long * status = eepromdata.getStatus();
+    long start  = status[ST_START];
+    long length = status[ST_LENGTH];
+    handleLengthDec();
     responseStartLenth(start, length);
 }
-void handleBrightnessIncPatch()
+
+void handleBrightnessInc()
 {   
     long * status = eepromdata.getStatus();
     long brightness  = status[ST_DIM];
@@ -861,7 +905,15 @@ void handleBrightnessIncPatch()
     updateGlobals(status[ST_START],status[ST_LENGTH],brightness,status[ST_LEDS]);
     responseVar("brightness", brightness);
 }
-void handleBrightnessDecPatch()
+void handleBrightnessIncPatch();
+{   
+    long * status = eepromdata.getStatus();
+    long brightness  = status[ST_DIM];
+    handleBrightnessInc();
+    responseVar("brightness", brightness);
+}
+
+void handleBrightnessDec()
 {
     long * status = eepromdata.getStatus();
     long brightness  = status[ST_DIM];
@@ -882,9 +934,17 @@ void handleBrightnessDecPatch()
     updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(status[ST_START],status[ST_LENGTH],brightness,status[ST_LEDS]);
+}
+
+void handleBrightnessDecPatch()
+{
+    long * status = eepromdata.getStatus();
+    long brightness  = status[ST_DIM];
+    handleBrightnessDec();
     responseVar("brightness", brightness);    
 }
-void handleColourIncPatch()
+
+void handleColourInc()
 {
     long * status = eepromdata.getStatus();
     long colour  = status[ST_LEDS];
@@ -895,9 +955,17 @@ void handleColourIncPatch()
     updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(status[ST_START],status[ST_LENGTH],status[ST_DIM],colour);
+}
+void handleColourIncPatch()
+{
+    long * status = eepromdata.getStatus();
+    long colour  = status[ST_LEDS];
+    handleColourInc();
     responseVar("colour", colour);
 }
-void handleColourDecPatch()
+
+
+void handleColourDec()
 {
     long * status = eepromdata.getStatus();
     long colour  = status[ST_LEDS];
@@ -908,6 +976,12 @@ void handleColourDecPatch()
     updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(status[ST_START],status[ST_LENGTH],status[ST_DIM],colour);
-    responseVar("colour", colour);
+}
 
+void handleColourDecPatch()
+{
+    long * status = eepromdata.getStatus();
+    long colour  = status[ST_LEDS];
+    handleColourDec();
+    responseVar("colour", colour);
 }
