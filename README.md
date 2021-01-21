@@ -7,7 +7,9 @@ Working:
   - colour temp of the leds
   - writing settings to flash
   - setup using web page
+  - setup using AP mode
+  - http api interface
+  - udp "api" interface
 
 TODO:
-  - setup using AP mode
   - demo mode
