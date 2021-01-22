@@ -13,3 +13,4 @@ Working:
 
 TODO:
   - demo mode
+  - off mode (neopix is breathing white), not stored in nvs

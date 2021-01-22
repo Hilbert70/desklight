@@ -29,7 +29,7 @@ void handleLength(long *start,long *length, long increment)
         *length = MAXBAR;
         *start  = 0;
     }
-    if (*length % 2 == 1){
+    if (*length % 2 == 1 && *length != 1){
         *start = *start - increment;
     }
     if ((*start) < 0) {
