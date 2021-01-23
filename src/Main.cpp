@@ -31,7 +31,7 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-#define DESKLIGHT_VERSION "2.4"
+#define DESKLIGHT_VERSION "2.4.1"
 
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
 
@@ -573,14 +573,14 @@ void loop()
     }
     // breathe test
 
-    if (breath_start && ( millis()- breath_time) > (breath_delay/3)) {
+    if (breath_start && ( millis()- breath_time) > (breath_delay/2)) {
         if (breath_inc) {
             breath_lum+=1;
         } else {
             breath_lum-=1;
         }
 
-        barMenu.bypassMenu(breath_lum,0x2f2f2f);
+        barMenu.bypassMenu(breath_lum,0x0f0f4f);
         breath_time = millis();
 
         if (breath_inc && breath_lum >=255) {
