@@ -43,3 +43,10 @@ void Menu::setState(int state)
     m_menupixel.show();
     // and change the menu colour
 }
+
+void Menu::bypassMenu(uint8_t br, uint64_t col)
+{
+    m_menupixel.setPixelColor(0,col);
+    m_menupixel.setBrightness(br);
+    m_menupixel.show();
+}

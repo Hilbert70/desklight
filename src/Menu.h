@@ -12,6 +12,7 @@ class Menu {
         void setup();
         int getState();
         void setState(int state);
+        void bypassMenu(uint8_t br, uint64_t col);
     private:
         Adafruit_NeoPixel m_menupixel;
         uint32_t m_colours[10];

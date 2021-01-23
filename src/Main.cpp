@@ -31,7 +31,7 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-#define DESKLIGHT_VERSION "2.3"
+#define DESKLIGHT_VERSION "2.4"
 
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
 
@@ -52,10 +52,18 @@ Adafruit_PWMServoDriver pwm1 = Adafruit_PWMServoDriver(0x41);
 const int timeout = 5000;       //define timeout of 5 sec
 long time0;
 boolean doneTimeout = false;
+boolean doneTimeout0 = false;
 long lastMenuUpdate;
 long timeButton;
 long rotaryEncOldPosition;
 long rotaryEncNewPosition;
+
+
+long     breath_time;
+uint16_t breath_delay = 10;
+uint16_t breath_lum = 14;
+bool     breath_inc = true;
+bool     breath_start = false;
 
 SWEeprom eepromdata;
 
@@ -94,6 +102,12 @@ void setupAPmode();
 
 void updateLED(long what[])
 {
+    if(what[ST_LEDS] != -1) {
+        // back to on state
+        if (breath_start) barMenu.bypassMenu(255,0);
+        breath_start = false;
+    }
+
     // only update when we have a change
     // Drive each PWM in a 'wave'
     for (int i =0 ; i<MAXBAR ; i++ ){
@@ -136,6 +150,11 @@ void updateLED(long what[])
         pwm1.setPWM(1, 0,  abs(what[0]) % 4096  );
         pwm1.setPWM(2, 0,  abs(what[0]) % 4096  );
         break;
+    case -1: // all ar off
+        pwm1.setPWM(0, 0,  0  );
+        pwm1.setPWM(1, 0,  0  );
+        pwm1.setPWM(2, 0,  0  );
+        break;    
     }
 }
 
@@ -280,6 +299,16 @@ void setup()
                     handleColourInc();
                 } else if (strncmp(msg, "cd",2) == 0) {
                     handleColourDec();
+                } else if (strncmp(msg, "of",2) == 0) {
+                    // turn of lamp and do go in breathe mode
+                    long offStatus[4];
+                    int i;
+                    for (i=0; i<4 ; i++){
+                        offStatus[i] = 0;
+                    }
+                    offStatus[ST_LEDS]= -1;
+                    updateLED(offStatus);
+                    breath_start = true;
                 }
             } else {
                 String response;
@@ -387,11 +416,11 @@ void loop()
 
     status = eepromdata.getStatus();
 
-    if (rotaryEncINewPosition == 0) {
-        // no change
-    //} else if (abs(rotaryEncINewPosition) >= 2) {
-    //    rotaryEncNewPosition += rotaryEncINewPosition * 2;
-    } else {
+    if (rotaryEncINewPosition != 0) {
+        // back to on state
+        if (breath_start) barMenu.bypassMenu(255,0);
+        breath_start = false;
+
         lastMenuUpdate = millis();
         menu = barMenu.getState();
         sign = 1;
@@ -422,10 +451,15 @@ void loop()
     }
 
     if (rotaryEncIButtonVal && rotaryButton.getState() ==LOW) {
+        // back to on state
+        if (breath_start) barMenu.bypassMenu(255,0);
+        breath_start = false;
+
         lastMenuUpdate = millis();
         barMenu.setState(barMenu.getState() +1);
         time0 = millis();
         doneTimeout = false;
+        doneTimeout0 = false;        
         timeButton = millis();
         menu = barMenu.getState();
         rotaryEncNewPosition = status[menu];
@@ -437,7 +471,8 @@ void loop()
 
     //Serial.println(rotaryButton.onChange());
 
-    switch (barMenu.getState()){
+    menu = barMenu.getState();
+    switch (menu){
     case ST_DIM: // just dim
         if (rotaryEncNewPosition < 1) {
             rotaryEncNewPosition = 1;
@@ -494,8 +529,12 @@ void loop()
         break;
     }
   
-    menu = barMenu.getState();
+    
     if (rotaryEncNewPosition != status[menu]) {
+        // back to on state
+        if (breath_start) barMenu.bypassMenu(255,0);
+        breath_start = false;
+
         eepromdata.setStatus(menu , rotaryEncNewPosition);
         time0 = millis(); // don't go out of the menu
         doneTimeout = false;
@@ -520,9 +559,10 @@ void loop()
         updateLED(status);
     }
 
-    if (millis() - time0 > timeout) {
+    if (millis() - time0 > timeout && !doneTimeout0) {
         barMenu.setState( 0 ); // just dim
         rotaryEncNewPosition = status[0];
+        doneTimeout0= true;
     }
     if (millis() - lastMenuUpdate > timeout && !eepromdata.written() && !doneTimeout) {
         // after timeout no actions (5 sec), update the eeprom.
@@ -531,7 +571,34 @@ void loop()
         eepromdata.write();
         doneTimeout= true;
     }
-    
+    // breathe test
+
+    if (breath_start && ( millis()- breath_time) > (breath_delay/3)) {
+        if (breath_inc) {
+            breath_lum+=1;
+        } else {
+            breath_lum-=1;
+        }
+
+        barMenu.bypassMenu(breath_lum,0x2f2f2f);
+        breath_time = millis();
+
+        if (breath_inc && breath_lum >=255) {
+            breath_inc = false;
+        }
+        if (!breath_inc && breath_lum <=15) {
+            breath_inc = true;
+        }
+        if(breath_lum <= 15) breath_delay = 400; // 970 pause before each breath
+        else if(breath_lum <=  25) breath_delay = 38; // 19
+        else if(breath_lum <=  50) breath_delay = 36; // 18
+        else if(breath_lum <=  75) breath_delay = 28; // 14
+        else if(breath_lum <= 100) breath_delay = 20; // 10
+        else if(breath_lum <= 125) breath_delay = 14; // 7
+        else if(breath_lum <= 150) breath_delay = 11; // 5
+        else breath_delay = 10; // 4
+
+    }
     ArduinoOTA.handle();
 }
 
@@ -659,6 +726,10 @@ void handleRoot()
         }   
     }
     if (hadStart && hadLength && hadDim && hadColour) {
+        // back to on state
+        if (breath_start) barMenu.bypassMenu(255,0);
+        breath_start = false;
+
         eepromdata.setStatus(ST_START,start);
         eepromdata.setStatus(ST_LENGTH,length);
         eepromdata.setStatus(ST_DIM,dim);
@@ -762,6 +833,10 @@ void handlepost()
         message += "Missing 'colour'. ";
     }
     if (hadStart && hadLength && hadBrightness && hadColour) {
+        // back to on state
+        if (breath_start) barMenu.bypassMenu(255,0);
+        breath_start = false;
+
         eepromdata.setStatus(ST_START,start);
         eepromdata.setStatus(ST_LENGTH,length);
         eepromdata.setStatus(ST_DIM,brightness);
