@@ -33,6 +33,8 @@
 
 #define DESKLIGHT_VERSION "2.4.1"
 
+#undef DEBUG
+
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
 
 Adafruit_NeoPixel pixels(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
@@ -78,6 +80,7 @@ void handleNotFound();
 //  api/v1/light
 void handlepost();  // post
 void handleget();  // get
+// upd stuff
 void handleStartInc();
 void handleStartDec();
 void handleLengthInc();
@@ -86,17 +89,6 @@ void handleBrightnessInc();
 void handleBrightnessDec();
 void handleColourInc();
 void handleColourDec();
-// api handlers
-void handleStartIncPatch();
-void handleStartDecPatch();
-void handleLengthIncPatch();
-void handleLengthDecPatch();
-void handleBrightnessIncPatch();
-void handleBrightnessDecPatch();
-void handleColourIncPatch();
-void handleColourDecPatch();
-
-// delete, never going to be supported
 
 void setupAPmode();
 
@@ -262,6 +254,7 @@ void setup()
         Serial.println("UDP connected");
         udp.onPacket([](AsyncUDPPacket packet) {
             char * hostname = eepromdata.getHostname();
+#ifdef DEBUG            
             Serial.print("UDP Packet Type: ");
             Serial.print(packet.isBroadcast()?"Broadcast":packet.isMulticast()?"Multicast":"Unicast");
             Serial.print(", From: ");
@@ -277,7 +270,7 @@ void setup()
             Serial.print(", Data: ");
             Serial.write(packet.data(), packet.length());
             Serial.println();
-            
+#endif            
             if (packet.length() ==2) {
                 char msg[3];
                 strncpy(msg, (const char*)packet.data(),2);
@@ -332,14 +325,6 @@ void setup()
         // api functions
         server.on("/api/v1/state", HTTP_GET,  handleget);
         server.on("/api/v1/state", HTTP_POST, handlepost);
-        server.on("/api/v1/start/inc",   HTTP_PATCH, handleStartIncPatch);
-        server.on("/api/v1/start/dec",   HTTP_PATCH, handleStartDecPatch);
-        server.on("/api/v1/length/inc",   HTTP_PATCH, handleLengthIncPatch);
-        server.on("/api/v1/length/dec",   HTTP_PATCH, handleLengthDecPatch);
-        server.on("/api/v1/brightness/inc",   HTTP_PATCH, handleBrightnessIncPatch);
-        server.on("/api/v1/brightness/dec",   HTTP_PATCH, handleBrightnessDecPatch);
-        server.on("/api/v1/colour/inc",   HTTP_PATCH, handleColourIncPatch);
-        server.on("/api/v1/colour/dec",   HTTP_PATCH, handleColourDecPatch);
     } else {
         setupAPmode();
         server.on("/", handleRootAP);
@@ -393,9 +378,9 @@ void setup()
     pwm.begin();
     pwm1.begin();
     pwm.setOscillatorFrequency(27000000);
-    pwm.setPWMFreq(800);  // This is the maximum PWM frequency
+    pwm.setPWMFreq(1600);  // This is the maximum PWM frequency
     pwm1.setOscillatorFrequency(27000000);  // The int.osc. is closer to 27MHz
-    pwm1.setPWMFreq(800);  // This is the maximum PWM frequency
+    pwm1.setPWMFreq(1600);  // This is the maximum PWM frequency
     
     rotaryEncOldPosition = status[0];
     rotaryEncNewPosition = status[0];
@@ -538,6 +523,7 @@ void loop()
         eepromdata.setStatus(menu , rotaryEncNewPosition);
         time0 = millis(); // don't go out of the menu
         doneTimeout = false;
+#ifdef DEBUG        
         Serial.print(F("Pos: "));
         Serial.print(rotaryEncNewPosition);
         Serial.print(F(" Button1: "));
@@ -555,7 +541,7 @@ void loop()
 
         Serial.print(F(" Menus: "));
         Serial.println(menu);
-
+#endif
         updateLED(status);
     }
 
@@ -869,24 +855,6 @@ void handleget()
     server.send(200, "application/json", response);
 }
 
-void responseStartLenth(long start, long length)
-{
-    String response;
-    StaticJsonDocument<30> doc;
-    doc["start"] = start;
-    doc["length"] = length;
-    serializeJson(doc, response);
-    server.send(200, "application/json", response);
-}
-void responseVar(String variable, long value)
-{
-    String response;
-    StaticJsonDocument<30> doc;
-    doc[variable] = value;
-    serializeJson(doc, response);
-    server.send(200, "application/json", response);
-}
-
 void handleStartInc()
 {
     long * status = eepromdata.getStatus();
@@ -899,14 +867,6 @@ void handleStartInc()
     updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
     eepromdata.write();
     updateLED(status);
-}
-void handleStartIncPatch()
-{
-    long * status = eepromdata.getStatus();
-    long start  = status[ST_START];
-    long length = status[ST_LENGTH];
-    handleStartInc();
-    responseStartLenth(start, length);
 }
 
 void handleStartDec()
@@ -923,15 +883,6 @@ void handleStartDec()
     updateLED(status);
 }
 
-void handleStartDecPatch()
-{
-    long * status = eepromdata.getStatus();
-    long start  = status[ST_START];
-    long length = status[ST_LENGTH];
-    handleStartDec();
-    responseStartLenth(start, length);
-}
-
 void handleLengthInc()
 {
     long * status = eepromdata.getStatus();
@@ -945,14 +896,6 @@ void handleLengthInc()
     updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
     eepromdata.write();
     updateLED(status);    
-}
-void handleLengthIncPatch()
-{
-    long * status = eepromdata.getStatus();
-    long start  = status[ST_START];
-    long length = status[ST_LENGTH];
-    handleLengthInc();
-    responseStartLenth(start, length);
 }
 
 void handleLengthDec()
@@ -968,14 +911,6 @@ void handleLengthDec()
     updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);    
     eepromdata.write();
     updateLED(status);
-}
-void handleLengthDecPatch()
-{
-    long * status = eepromdata.getStatus();
-    long start  = status[ST_START];
-    long length = status[ST_LENGTH];
-    handleLengthDec();
-    responseStartLenth(start, length);
 }
 
 void handleBrightnessInc()
@@ -999,13 +934,6 @@ void handleBrightnessInc()
     updateGlobals(status[ST_START],status[ST_LENGTH],brightness,status[ST_LEDS]);
     eepromdata.write();
     updateLED(status);
-}
-void handleBrightnessIncPatch()
-{   
-    long * status = eepromdata.getStatus();
-    long brightness  = status[ST_DIM];
-    handleBrightnessInc();
-    responseVar("brightness", brightness);
 }
 
 void handleBrightnessDec()
@@ -1031,14 +959,6 @@ void handleBrightnessDec()
     updateLED(status);
 }
 
-void handleBrightnessDecPatch()
-{
-    long * status = eepromdata.getStatus();
-    long brightness  = status[ST_DIM];
-    handleBrightnessDec();
-    responseVar("brightness", brightness);    
-}
-
 void handleColourInc()
 {
     long * status = eepromdata.getStatus();
@@ -1051,14 +971,6 @@ void handleColourInc()
     // AUCH, update the global variable!!!
     updateGlobals(status[ST_START],status[ST_LENGTH],status[ST_DIM],colour);
 }
-void handleColourIncPatch()
-{
-    long * status = eepromdata.getStatus();
-    long colour  = status[ST_LEDS];
-    handleColourInc();
-    responseVar("colour", colour);
-}
-
 
 void handleColourDec()
 {
@@ -1071,12 +983,4 @@ void handleColourDec()
     updateLED(status);
     // AUCH, update the global variable!!!
     updateGlobals(status[ST_START],status[ST_LENGTH],status[ST_DIM],colour);
-}
-
-void handleColourDecPatch()
-{
-    long * status = eepromdata.getStatus();
-    long colour  = status[ST_LEDS];
-    handleColourDec();
-    responseVar("colour", colour);
 }

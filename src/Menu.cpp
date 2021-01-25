@@ -1,7 +1,5 @@
 #include "Menu.h"
 
-
-
 // Declare our NeoPixel strip object:
 
 // Argument 1 = Number of pixels in NeoPixel strip
