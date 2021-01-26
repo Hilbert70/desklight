@@ -275,7 +275,9 @@ void setup()
                 char msg[3];
                 strncpy(msg, (const char*)packet.data(),2);
                 msg[2]='\0';
+#ifdef DEBUG                
                 Serial.println(msg);
+#endif
                 if (strncmp(msg, "si",2) == 0) {
                     handleStartInc();
                 } else if (strncmp(msg, "sd",2) == 0) {
