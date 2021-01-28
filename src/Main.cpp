@@ -89,7 +89,7 @@ void handleBrightnessInc();
 void handleBrightnessDec();
 void handleColourInc();
 void handleColourDec();
-
+void handleUdp(AsyncUDPPacket& packet);
 void setupAPmode();
 
 void updateLED(long what[])
@@ -252,74 +252,7 @@ void setup()
 
     if(udp.listen( 54321)) {
         Serial.println("UDP connected");
-        udp.onPacket([](AsyncUDPPacket packet) {
-            char * hostname = eepromdata.getHostname();
-#ifdef DEBUG            
-            Serial.print("UDP Packet Type: ");
-            Serial.print(packet.isBroadcast()?"Broadcast":packet.isMulticast()?"Multicast":"Unicast");
-            Serial.print(", From: ");
-            Serial.print(packet.remoteIP());
-            Serial.print(":");
-            Serial.print(packet.remotePort());
-            Serial.print(", To: ");
-            Serial.print(packet.localIP());
-            Serial.print(":");
-            Serial.print(packet.localPort());
-            Serial.print(", Length: ");
-            Serial.print(packet.length());
-            Serial.print(", Data: ");
-            Serial.write(packet.data(), packet.length());
-            Serial.println();
-#endif            
-            if (packet.length() ==2) {
-                char msg[3];
-                strncpy(msg, (const char*)packet.data(),2);
-                msg[2]='\0';
-#ifdef DEBUG                
-                Serial.println(msg);
-#endif
-                if (strncmp(msg, "si",2) == 0) {
-                    handleStartInc();
-                } else if (strncmp(msg, "sd",2) == 0) {
-                    handleStartDec();
-                } else if (strncmp(msg, "li",2) == 0) {
-                    handleLengthInc();
-                } else if (strncmp(msg, "ld",2) == 0) {
-                    handleLengthDec();
-                } else if (strncmp(msg, "bi",2) == 0) {
-                    handleBrightnessInc();
-                } else if (strncmp(msg, "bd",2) == 0) {
-                    handleBrightnessDec();
-                } else if (strncmp(msg, "ci",2) == 0) {
-                    handleColourInc();
-                } else if (strncmp(msg, "cd",2) == 0) {
-                    handleColourDec();
-                } else if (strncmp(msg, "of",2) == 0) {
-                    // turn of lamp and do go in breathe mode
-                    long offStatus[4];
-                    int i;
-                    for (i=0; i<4 ; i++){
-                        offStatus[i] = 0;
-                    }
-                    offStatus[ST_LEDS]= -1;
-                    updateLED(offStatus);
-                    breath_start = true;
-                }
-            } else {
-                String response;
-                StaticJsonDocument<300> doc;
-
-                doc["hostname"] = hostname;
-                doc["apiversion"] = "v1";
-                serializeJson(doc, response);
-                packet.printf(response.c_str());
-            }
-            // check for message size
-            // friendly name must be returned and api version
-            // create select lamp page, in this page a lamp is selected and stored 
-            //reply to the client
-
-        });
+        udp.onPacket(handleUdp);
     }
     if (inSTAmode) {
         server.on("/", handleRoot);
@@ -855,6 +788,70 @@ void handleget()
     doc["length"] = status[ST_LENGTH];
     serializeJson(doc, response);
     server.send(200, "application/json", response);
+}
+void handleUdp(AsyncUDPPacket& packet)
+{
+    char * hostname = eepromdata.getHostname();
+#ifdef DEBUG            
+    Serial.print("UDP Packet Type: ");
+    Serial.print(packet.isBroadcast()?"Broadcast":packet.isMulticast()?"Multicast":"Unicast");
+    Serial.print(", From: ");
+    Serial.print(packet.remoteIP());
+    Serial.print(":");
+    Serial.print(packet.remotePort());
+    Serial.print(", To: ");
+    Serial.print(packet.localIP());
+    Serial.print(":");
+    Serial.print(packet.localPort());
+    Serial.print(", Length: ");
+    Serial.print(packet.length());
+    Serial.print(", Data: ");
+    Serial.write(packet.data(), packet.length());
+    Serial.println();
+#endif            
+    if (packet.length() ==2) {
+        char msg[3];
+        strncpy(msg, (const char*)packet.data(),2);
+        msg[2]='\0';
+#ifdef DEBUG                
+        Serial.println(msg);
+#endif
+        if (strncmp(msg, "si",2) == 0) {
+            handleStartInc();
+        } else if (strncmp(msg, "sd",2) == 0) {
+            handleStartDec();
+        } else if (strncmp(msg, "li",2) == 0) {
+            handleLengthInc();
+        } else if (strncmp(msg, "ld",2) == 0) {
+            handleLengthDec();
+        } else if (strncmp(msg, "bi",2) == 0) {
+            handleBrightnessInc();
+        } else if (strncmp(msg, "bd",2) == 0) {
+            handleBrightnessDec();
+        } else if (strncmp(msg, "ci",2) == 0) {
+            handleColourInc();
+        } else if (strncmp(msg, "cd",2) == 0) {
+            handleColourDec();
+        } else if (strncmp(msg, "of",2) == 0) {
+            // turn of lamp and do go in breathe mode
+            long offStatus[4];
+            int i;
+            for (i=0; i<4 ; i++){
+                offStatus[i] = 0;
+            }
+            offStatus[ST_LEDS]= -1;
+            updateLED(offStatus);
+            breath_start = true;
+        }
+    } else {
+        String response;
+        StaticJsonDocument<300> doc;
+
+        doc["hostname"] = hostname;
+        doc["apiversion"] = "v1";
+        serializeJson(doc, response);
+        packet.printf(response.c_str());
+    }
 }
 
 void handleStartInc()
