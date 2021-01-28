@@ -31,7 +31,7 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-#define DESKLIGHT_VERSION "2.4.1"
+#define DESKLIGHT_VERSION "2.4.2"
 
 #undef DEBUG
 
