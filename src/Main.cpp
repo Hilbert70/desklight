@@ -13,7 +13,7 @@
 #include "Button.h"
 #include "Menu.h"
 #include <ErriezRotaryFullStep.h>
-#include <WebServer.h>
+#include <ESPASyncWebServer.h>
 
 #include "sweeprom.h"
 #include "functions.h"
@@ -31,7 +31,7 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-#define DESKLIGHT_VERSION "2.4.3"
+#define DESKLIGHT_VERSION "2.4.4"
 
 #undef DEBUG
 
@@ -70,16 +70,12 @@ bool     breath_start = false;
 SWEeprom eepromdata;
 
 String apList;
-WebServer server(80);
+AsyncWebServer server(80);
 AsyncUDP udp;
 
-void handleRoot();
-void handleRootAP();
-void handleNotFound();
-// Rest interface
-//  api/v1/light
-void handlepost();  // post
-void handleget();  // get
+void handleRoot(AsyncWebServerRequest *request);
+void handleRootAP(AsyncWebServerRequest *request);
+void handleNotFound(AsyncWebServerRequest *request);
 // upd stuff
 void handleStartInc();
 void handleStartDec();
@@ -169,7 +165,6 @@ void updateGlobals(long start,long length, long brightness, long colour)
     }
 }
 
-
 // Setup the essentials for your circuit to work. It runs first every time your circuit is powered with electricity.
 void setup() 
 {
@@ -257,17 +252,12 @@ void setup()
     if (inSTAmode) {
         server.on("/", handleRoot);
         server.on("/settings", handleRootAP);
-        // api functions
-        server.on("/api/v1/state", HTTP_GET,  handleget);
-        server.on("/api/v1/state", HTTP_POST, handlepost);
     } else {
         setupAPmode();
         server.on("/", handleRootAP);
     }
         
     server.onNotFound(handleNotFound);
-
-
     server.begin();
 
     ArduinoOTA.onStart([]() {
@@ -332,8 +322,6 @@ void loop()
     int  sign;
     long * status;
     
-    server.handleClient();
-
     status = eepromdata.getStatus();
 
     if (rotaryEncINewPosition != 0) {
@@ -551,7 +539,7 @@ void setupAPmode()
     Serial.println("softap");
 } 
 
-void handleRootAP()
+void handleRootAP(AsyncWebServerRequest *request)
 {
     String message;
     char * hostname = eepromdata.getHostname();
@@ -611,7 +599,7 @@ void handleRootAP()
     server.send(200, "text/html", message);
 }
 
-void handleRoot()
+void handleRoot(AsyncWebServerRequest *request)
 {
     String message;
     long * status = eepromdata.getStatus();
@@ -684,114 +672,31 @@ void handleRoot()
   //}
 }
 
-void handleNotFound()
+void handleNotFound(AsyncWebServerRequest *request)
 {
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET)?"GET":"POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-  for (uint8_t i=0; i<server.args(); i++){
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
-  }
-  server.send(404, "text/plain", message);
+    String message = "File Not Found\n\n";
+    int i;
+    int params = request->params();
+    message += "URI: ";
+    message += request->url();
+    message += "\nMethod: ";
+    message += (request->method() == HTTP_GET)?"GET":"POST";
+    message += "\nArguments: ";
+    message += params;
+    message += "\n";
+    for(i=0;i<params;i++){
+        AsyncWebParameter* p = request->getParam(i);
+        if(p->isPost()){
+            message += " _POST[" + p->name() +"]: " +  p->value() + "\n";
+        } else {
+            message += " _GET[" + p->name() + "]: " + p->value() + "\n";
+        }
+    }
+    request->send(404, "text/plain", message);
 }
 
-// rest api
-void handlepost()
-{
-    StaticJsonDocument<300> doc;
-    long * status = eepromdata.getStatus();
-    long start =0, length=0, brightness=0, colour=0;
-    bool hadStart      = false;
-    bool hadLength     = false;
-    bool hadBrightness = false;
-    bool hadColour     = false;
-    String message = "";
-
-    if (server.hasArg("plain") == false) {
-    //handle error here
-        server.send(400, "application/json", "{}");
-        return;
-    }
-    
-    DeserializationError err= deserializeJson(doc, server.arg("plain"));
-    if (err) {
-        // json error
-        message =  "{ \"error\": " + String(err.c_str()) +", \"message\": \"json parse error\"}";
-        server.send(400, "application/json", message); 
-        return;
-    }
-    hadStart      = doc.containsKey("start");
-    hadLength     = doc.containsKey("length");
-    hadBrightness = doc.containsKey("brightness");
-    hadColour     = doc.containsKey("colour");
-    if (hadStart) {
-        start =doc["start"];
-        handleStart(&start,length);
-    } else {
-        message = "Missing 'start'. ";
-    }
-    if (hadLength) {
-        length = doc["length"];
-        handleLength(&start,&length,0);
-    } else {
-        message += "Missing 'length'. ";
-    }
-    if (hadBrightness) {
-        brightness = doc["brightness"];
-        handleBrightness(&brightness);
-    } else {
-        message += "Missing 'brightness'. ";
-    }
-    if (hadColour) {
-        colour = doc["colour"];
-        handleColour(&colour);
-    } else {
-        message += "Missing 'colour'. ";
-    }
-    if (hadStart && hadLength && hadBrightness && hadColour) {
-        // back to on state
-        if (breath_start) barMenu.bypassMenu(255,0);
-        breath_start = false;
-
-        eepromdata.setStatus(ST_START,start);
-        eepromdata.setStatus(ST_LENGTH,length);
-        eepromdata.setStatus(ST_DIM,brightness);
-        eepromdata.setStatus(ST_LEDS,colour);
-        eepromdata.write();
-        updateLED(status);
-        // AUCH, update the global variable!!!
-        updateGlobals(start,length,brightness,colour);
-    } else {
-        // payload incomplete
-        message =  "{ \"error\":  112, \"message\": \"" + message + "\" }";
-        server.send(400, "application/json", message); 
-        return; 
-    }
-    server.send(200, "application/json", "{}"); 
-}
-
-void handleget()
-{
-    long * status = eepromdata.getStatus();
-    String response;
-    StaticJsonDocument<300> doc;
-
-    Serial.println("Get light state");
-    doc["brightness"] = status[ST_DIM];
-    doc["colour"] = status[ST_LEDS];
-    doc["start"] = status[ST_START];
-    doc["length"] = status[ST_LENGTH];
-    serializeJson(doc, response);
-    server.send(200, "application/json", response);
-}
 void handleUdp(AsyncUDPPacket& packet)
 {
-    char * hostname = eepromdata.getHostname();
 #ifdef DEBUG            
     Serial.print("UDP Packet Type: ");
     Serial.print(packet.isBroadcast()?"Broadcast":packet.isMulticast()?"Multicast":"Unicast");
@@ -810,29 +715,27 @@ void handleUdp(AsyncUDPPacket& packet)
     Serial.println();
 #endif            
     if (packet.length() ==2) {
-        char msg[3];
-        strncpy(msg, (const char*)packet.data(),2);
-        msg[2]='\0';
+       String msg = (const char *)packet.data();
 #ifdef DEBUG                
         Serial.println(msg);
 #endif
-        if (strncmp(msg, "si",2) == 0) {
+        if (msg == "si") {
             handleStartInc();
-        } else if (strncmp(msg, "sd",2) == 0) {
+        } else if (msg == "sd") {
             handleStartDec();
-        } else if (strncmp(msg, "li",2) == 0) {
+        } else if (msg == "li") {
             handleLengthInc();
-        } else if (strncmp(msg, "ld",2) == 0) {
+        } else if (msg == "ld") {
             handleLengthDec();
-        } else if (strncmp(msg, "bi",2) == 0) {
+        } else if (msg == "bi") {
             handleBrightnessInc();
-        } else if (strncmp(msg, "bd",2) == 0) {
+        } else if (msg == "bd") {
             handleBrightnessDec();
-        } else if (strncmp(msg, "ci",2) == 0) {
+        } else if (msg == "ci") {
             handleColourInc();
-        } else if (strncmp(msg, "cd",2) == 0) {
+        } else if (msg == "cd") {
             handleColourDec();
-        } else if (strncmp(msg, "of",2) == 0) {
+        } else if (msg == "of") {
             // turn of lamp and do go in breathe mode
             long offStatus[4];
             int i;
@@ -844,6 +747,7 @@ void handleUdp(AsyncUDPPacket& packet)
             breath_start = true;
         }
     } else {
+        char * hostname = eepromdata.getHostname();
         String response;
         StaticJsonDocument<300> doc;
 
