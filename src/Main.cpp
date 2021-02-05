@@ -4,7 +4,6 @@
 #include <Adafruit_PWMServoDriver.h>
 
 #include <WiFi.h>
-#include <AsyncUDP.h>
 
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
@@ -31,8 +30,9 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-#define DESKLIGHT_VERSION "2.5"
+#define DESKLIGHT_VERSION "3.0"
 
+//#define DEBUG
 #undef DEBUG
 
 const char* PARAM_HOSTNAME = "hostname";
@@ -80,21 +80,12 @@ SWEeprom eepromdata;
 
 String apList;
 AsyncWebServer server(80);
-AsyncUDP udp;
 
 void handleRoot(AsyncWebServerRequest *request);
 void handleRootAP(AsyncWebServerRequest *request);
+void handleOff(AsyncWebServerRequest *request);
 void handleNotFound(AsyncWebServerRequest *request);
 // upd stuff
-void handleStartInc();
-void handleStartDec();
-void handleLengthInc();
-void handleLengthDec();
-void handleBrightnessInc();
-void handleBrightnessDec();
-void handleColourInc();
-void handleColourDec();
-void handleUdp(AsyncUDPPacket& packet);
 void setupAPmode();
 
 void updateLED(long what[])
@@ -254,13 +245,10 @@ void setup()
         inSTAmode = false;
     }
 
-    if(udp.listen( 54321)) {
-        Serial.println("UDP connected");
-        udp.onPacket(handleUdp);
-    }
     if (inSTAmode) {
         server.on("/",  handleRoot);
         server.on("/settings", HTTP_POST, handleRootAP);
+        server.on("/off",  handleOff);
     } else {
         setupAPmode();
         server.on("/",  HTTP_POST, handleRootAP);
@@ -668,6 +656,7 @@ void handleRoot(AsyncWebServerRequest *request)
     message += "<h1>ESP32 Web Server</h1>";
     message += "<h3>" + String(hostname) + "<br />Version: " + DESKLIGHT_VERSION +"</h3>";
     message += "<a href='settings'>Settings</a><br /><br />";
+    message += "<a href='off'>Soft off</a><br /><br />";
     message += "<div class=\"container\">";
     message += "<form method='post'>";
     message += "<label>Start: </label><input name='start' length='2' type='number' min='0' max='"+String(MAXBAR-1)+"' value='"+String(status[ST_START])+"'/><br />";
@@ -702,195 +691,15 @@ void handleNotFound(AsyncWebServerRequest *request)
     request->send(404, "text/plain", message);
 }
 
-void handleUdp(AsyncUDPPacket& packet)
+void handleOff(AsyncWebServerRequest *request)
 {
-#ifdef DEBUG            
-    Serial.print("UDP Packet Type: ");
-    Serial.print(packet.isBroadcast()?"Broadcast":packet.isMulticast()?"Multicast":"Unicast");
-    Serial.print(", From: ");
-    Serial.print(packet.remoteIP());
-    Serial.print(":");
-    Serial.print(packet.remotePort());
-    Serial.print(", To: ");
-    Serial.print(packet.localIP());
-    Serial.print(":");
-    Serial.print(packet.localPort());
-    Serial.print(", Length: ");
-    Serial.print(packet.length());
-    Serial.print(", Data: ");
-    Serial.write(packet.data(), packet.length());
-    Serial.println();
-#endif            
-    if (packet.length() ==2) {
-       String msg = (const char *)packet.data();
-#ifdef DEBUG                
-        Serial.println(msg);
-#endif
-        if (msg == "si") {
-            handleStartInc();
-        } else if (msg == "sd") {
-            handleStartDec();
-        } else if (msg == "li") {
-            handleLengthInc();
-        } else if (msg == "ld") {
-            handleLengthDec();
-        } else if (msg == "bi") {
-            handleBrightnessInc();
-        } else if (msg == "bd") {
-            handleBrightnessDec();
-        } else if (msg == "ci") {
-            handleColourInc();
-        } else if (msg == "cd") {
-            handleColourDec();
-        } else if (msg == "of") {
-            // turn of lamp and do go in breathe mode
-            long offStatus[4];
-            int i;
-            for (i=0; i<4 ; i++){
-                offStatus[i] = 0;
-            }
-            offStatus[ST_LEDS]= -1;
-            updateLED(offStatus);
-            breath_start = true;
-        }
-    } else {
-        char * hostname = eepromdata.getHostname();
-        String response;
-        StaticJsonDocument<300> doc;
-
-        doc["hostname"] = hostname;
-        doc["apiversion"] = "v1";
-        serializeJson(doc, response);
-        packet.printf(response.c_str());
+    long offStatus[4];
+    int i;
+    for (i=0; i<4 ; i++){
+        offStatus[i] = 0;
     }
-}
-
-void handleStartInc()
-{
-    long * status = eepromdata.getStatus();
-    long start  = status[ST_START];
-    long length = status[ST_LENGTH];
-    start++;
-    handleStart(&start, length);
-    eepromdata.setStatus(ST_START,start);
-    // AUCH, update the global variable!!!
-    updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
-    eepromdata.write();
-    updateLED(status);
-}
-
-void handleStartDec()
-{
-    long * status = eepromdata.getStatus();
-    long start  = status[ST_START];
-    long length = status[ST_LENGTH];
-    start--;
-    handleStart(&start, length);
-    eepromdata.setStatus(ST_START,start);
-    // AUCH, update the global variable!!!
-    updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
-    eepromdata.write();
-    updateLED(status);
-}
-
-void handleLengthInc()
-{
-    long * status = eepromdata.getStatus();
-    long start  = status[ST_START];
-    long length = status[ST_LENGTH];
-    length++;
-    handleLength(&start, &length, 1);
-    eepromdata.setStatus(ST_START,start);
-    eepromdata.setStatus(ST_LENGTH,length);
-    // AUCH, update the global variable!!!
-    updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);
-    eepromdata.write();
-    updateLED(status);    
-}
-
-void handleLengthDec()
-{
-    long * status = eepromdata.getStatus();
-    long start  = status[ST_START];
-    long length = status[ST_LENGTH];
-    length--;
-    handleLength(&start,&length,-1);
-    eepromdata.setStatus(ST_START,start);
-    eepromdata.setStatus(ST_LENGTH,length);
-    // AUCH, update the global variable!!!
-    updateGlobals(start,length,status[ST_DIM],status[ST_LEDS]);    
-    eepromdata.write();
-    updateLED(status);
-}
-
-void handleBrightnessInc()
-{   
-    long * status = eepromdata.getStatus();
-    long brightness  = status[ST_DIM];
-    //brightness--;
-    if (brightness < 10) {
-        brightness++;
-    } else if (brightness >= 10 && brightness < 100 ) {
-        brightness+=5;
-    } else if (brightness >= 100 && brightness < 1000 ) {
-        brightness+=10;
-    } else {
-        // larger that 1000
-        brightness+= 100;
-    }
-    handleBrightness(&brightness);
-    eepromdata.setStatus(ST_DIM,brightness);
-    // AUCH, update the global variable!!!
-    updateGlobals(status[ST_START],status[ST_LENGTH],brightness,status[ST_LEDS]);
-    eepromdata.write();
-    updateLED(status);
-}
-
-void handleBrightnessDec()
-{
-    long * status = eepromdata.getStatus();
-    long brightness  = status[ST_DIM];
-    //brightness--;
-    if (brightness < 10) {
-        brightness--;
-    } else if (brightness >= 10 && brightness < 100 ) {
-        brightness-=5;
-    } else if (brightness >= 100 && brightness < 1000 ) {
-        brightness-=10;
-    } else {
-        // larger that 1000
-        brightness-= 100;
-    }
-    handleBrightness(&brightness);
-    eepromdata.setStatus(ST_DIM,brightness);
-    // AUCH, update the global variable!!!
-    updateGlobals(status[ST_START],status[ST_LENGTH],brightness,status[ST_LEDS]);
-    eepromdata.write();
-    updateLED(status);
-}
-
-void handleColourInc()
-{
-    long * status = eepromdata.getStatus();
-    long colour  = status[ST_LEDS];
-    colour++;
-    handleColour(&colour);
-    eepromdata.setStatus(ST_LEDS,colour);
-    eepromdata.write();
-    updateLED(status);
-    // AUCH, update the global variable!!!
-    updateGlobals(status[ST_START],status[ST_LENGTH],status[ST_DIM],colour);
-}
-
-void handleColourDec()
-{
-    long * status = eepromdata.getStatus();
-    long colour  = status[ST_LEDS];
-    colour--;
-    handleColour(&colour);
-    eepromdata.setStatus(ST_LEDS,colour);
-    eepromdata.write();
-    updateLED(status);
-    // AUCH, update the global variable!!!
-    updateGlobals(status[ST_START],status[ST_LENGTH],status[ST_DIM],colour);
+    offStatus[ST_LEDS]= -1;
+    updateLED(offStatus);
+    breath_start = true;
+    request->redirect("/");
 }
