@@ -31,9 +31,18 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-#define DESKLIGHT_VERSION "2.4.4"
+#define DESKLIGHT_VERSION "2.5"
 
 #undef DEBUG
+
+const char* PARAM_HOSTNAME = "hostname";
+const char* PARAM_SSID     = "ssid";
+const char* PARAM_PSK      = "psk";
+
+const char* PARAM_START    = "start";
+const char* PARAM_LENGTH   = "length";
+const char* PARAM_DIM      = "dim";
+const char* PARAM_COLOUR   = "colour";
 
 uint32_t menuColours[] ={0x000000,0x002200,0x220022,0x000022,};
 
@@ -250,11 +259,11 @@ void setup()
         udp.onPacket(handleUdp);
     }
     if (inSTAmode) {
-        server.on("/", handleRoot);
-        server.on("/settings", handleRootAP);
+        server.on("/",  handleRoot);
+        server.on("/settings", HTTP_POST, handleRootAP);
     } else {
         setupAPmode();
-        server.on("/", handleRootAP);
+        server.on("/",  HTTP_POST, handleRootAP);
     }
         
     server.onNotFound(handleNotFound);
@@ -543,31 +552,24 @@ void handleRootAP(AsyncWebServerRequest *request)
 {
     String message;
     char * hostname = eepromdata.getHostname();
-    int  i;
-    bool hadHostname = false;
-    bool hadSSID     = false;
     bool hadPSK      = false;
     String error = "";
 
-    for (i=0;i<server.args(); i++){
-        if (server.argName(i) == "hostname")  {
-            hadHostname= true;
-            eepromdata.setHostname(server.arg(i));
-        }
-        if  (server.argName(i) == "ssid"){
-            hadSSID= true;
-            eepromdata.setSSID(server.arg(i));
-        } 
-        if (server.argName(i) == "psk") {
-            if (server.arg(i).length()>7 ) {
-                hadPSK= true;
-                eepromdata.setPSK(server.arg(i));
-            } else {
+    if (request->hasParam(PARAM_HOSTNAME) &&
+        request->hasParam(PARAM_SSID)     &&
+        request->hasParam(PARAM_PSK))
+    {
+        eepromdata.setHostname(request->getParam(PARAM_HOSTNAME)->value());
+        eepromdata.setSSID(request->getParam(PARAM_SSID)->value());
+        if (request->getParam(PARAM_PSK)->value().length()>7 ) {
+            hadPSK= true;
+            eepromdata.setPSK(request->getParam(PARAM_PSK)->value());
+        } else {
                 error += "<p style=\"color:red;\">password has to be longer than 7 characters</p>";
-            }
-        }   
+        }
+
     }
-    if (hadHostname && hadSSID && hadPSK) {
+    if (hadPSK) {
         Serial.println("Writing eeprom.");
         eepromdata.write();
         Serial.print("Written ");
@@ -596,7 +598,7 @@ void handleRootAP(AsyncWebServerRequest *request)
     message += "<input type='submit'>";
     message += "</form></div>";
     message += "</body></html>";
-    server.send(200, "text/html", message);
+    request->send(200, "text/html", message);
 }
 
 void handleRoot(AsyncWebServerRequest *request)
@@ -606,35 +608,41 @@ void handleRoot(AsyncWebServerRequest *request)
     char * hostname = eepromdata.getHostname();
 
     long start =0, length=0, dim=0, colour=0;
-    int i;
-    bool hadStart  = false;
-    bool hadLength = false;
-    bool hadDim    = false;
-    bool hadColour = false;
 
-    for (i=0;i<server.args(); i++){
-        if (server.argName(i) == "start")  {
-            hadStart= true;
-            start = StrtoLong( server.arg(i) );
-            handleStart(&start,length);
+    int i;
+    int params  = request->params();
+    Serial.println("Request");
+    for(i=0;i<params;i++){
+        AsyncWebParameter* p = request->getParam(i);
+        if(p->isPost()){
+            Serial.println(" _POST[" + p->name() +"]: " +  p->value());
+        } else {
+            Serial.println( " _GET[" + p->name() + "]: " + p->value());
         }
-        if  (server.argName(i) == "length"){
-            hadLength= true;
-            length = StrtoLong( server.arg(i) );
-            handleLength(&start,&length,0);
-        } 
-        if (server.argName(i) == "dim") {
-            hadDim= true;
-            dim    = StrtoLong( server.arg(i) );
-            handleBrightness(&dim);
-        }   
-        if (server.argName(i) == "colour") {
-            hadColour= true;
-            colour    = StrtoLong( server.arg(i) );
-            handleColour(&colour);
-        }   
     }
-    if (hadStart && hadLength && hadDim && hadColour) {
+    
+    if (request->hasParam(PARAM_START, true)  &&
+        request->hasParam(PARAM_LENGTH, true) &&
+        request->hasParam(PARAM_DIM, true)    &&
+        request->hasParam(PARAM_COLOUR, true))
+    {
+        Serial.println("Handle it");
+        start = StrtoLong( request->getParam(PARAM_START, true)->value() );
+        handleStart(&start,length);
+        length = StrtoLong( request->getParam(PARAM_LENGTH, true)->value() );
+        handleLength(&start,&length,0);
+        dim = StrtoLong( request->getParam(PARAM_DIM, true)->value() );
+        handleBrightness(&dim);
+        colour    = StrtoLong( request->getParam(PARAM_COLOUR, true)->value() );
+        handleColour(&colour);
+        Serial.print("Start: ");
+        Serial.println(start);
+        Serial.print("Length: ");
+        Serial.println(length);
+        Serial.print("dim: ");
+        Serial.println(dim);
+        Serial.print("colour: ");
+        Serial.println(colour);
         // back to on state
         if (breath_start) barMenu.bypassMenu(255,0);
         breath_start = false;
@@ -668,8 +676,7 @@ void handleRoot(AsyncWebServerRequest *request)
     message += "<label>Colour: </label><input name='colour' length='2' type='number' min='0' max='"+String(MAXMODES-1)+"' value='"+String(status[ST_LEDS])+"'/><br />";
     message += "<input type='submit'>";
     message += "</form></div></body></html>";
-    server.send(200, "text/html", message);
-  //}
+    request->send(200, "text/html", message);
 }
 
 void handleNotFound(AsyncWebServerRequest *request)
