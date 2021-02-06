@@ -560,8 +560,10 @@ void handleRootAP(AsyncWebServerRequest *request)
     if (hadPSK) {
         Serial.println("Writing eeprom.");
         eepromdata.write();
+#ifdef DEBUG
         Serial.print("Written ");
         Serial.print(eepromdata.errorMessage);
+#endif
         delay(500);
         Serial.println("Rebooting into new wifi!");
         ESP.restart();
