@@ -354,17 +354,17 @@ void loop()
     if (rotaryEncIButtonVal && rotaryButton.getState() ==HIGH) {
         Serial.print(F("\ttime: "));
         Serial.println(millis()-timeButton);
-        if (millis()-timeButton > BREATH_TIMEOUT) {
-            long offStatus[4];
-            int i;
-            for (i=0; i<4 ; i++){
-                offStatus[i] = 0;
-            }
-            offStatus[ST_LEDS]= -1;
-            updateLED(offStatus);
-            breath_start = true;
+    }
+
+    if (rotaryButton.getState() ==LOW && (millis()-timeButton > BREATH_TIMEOUT)) {
+        long offStatus[4];
+        int i;
+        for (i=0; i<4 ; i++){
+            offStatus[i] = 0;
         }
-        // or demo mode ;-)
+        offStatus[ST_LEDS]= -1;
+        updateLED(offStatus);
+        breath_start = true;
     }
 
     if (rotaryEncIButtonVal && rotaryButton.getState() ==LOW) {
