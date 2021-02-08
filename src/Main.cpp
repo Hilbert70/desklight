@@ -30,7 +30,7 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-#define DESKLIGHT_VERSION "3.0"
+#define DESKLIGHT_VERSION "3.1"
 
 //#define DEBUG
 #undef DEBUG
@@ -69,7 +69,7 @@ long timeButton;
 long rotaryEncOldPosition;
 long rotaryEncNewPosition;
 
-
+#define  BREATH_TIMEOUT 5000
 long     breath_time;
 uint16_t breath_delay = 10;
 uint16_t breath_lum = 14;
@@ -307,6 +307,7 @@ void setup()
     rotaryEncOldPosition = status[0];
     rotaryEncNewPosition = status[0];
 
+    breath_time = millis();
     barMenu.setup();
     updateLED(status);
 }    
@@ -353,6 +354,17 @@ void loop()
     if (rotaryEncIButtonVal && rotaryButton.getState() ==HIGH) {
         Serial.print(F("\ttime: "));
         Serial.println(millis()-timeButton);
+        if (millis()-timeButton > BREATH_TIMEOUT) {
+            long offStatus[4];
+            int i;
+            for (i=0; i<4 ; i++){
+                offStatus[i] = 0;
+            }
+            offStatus[ST_LEDS]= -1;
+            updateLED(offStatus);
+            breath_start = true;
+        }
+        // or demo mode ;-)
     }
 
     if (rotaryEncIButtonVal && rotaryButton.getState() ==LOW) {
