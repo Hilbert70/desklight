@@ -32,8 +32,8 @@
 
 #define DESKLIGHT_VERSION "3.1"
 
-//#define DEBUG
-#undef DEBUG
+#define DEBUG
+//#undef DEBUG
 
 const char* PARAM_HOSTNAME = "hostname";
 const char* PARAM_SSID     = "ssid";
@@ -69,6 +69,9 @@ long timeButton;
 long rotaryEncOldPosition;
 long rotaryEncNewPosition;
 
+#define DEMO_TIME  5000
+bool    demo_mode = false;
+
 #define  BREATH_TIMEOUT 5000
 long     breath_time;
 uint16_t breath_delay = 10;
@@ -76,6 +79,7 @@ uint16_t breath_lum = 14;
 bool     breath_inc = true;
 bool     breath_start = false;
 
+bool    button_pressed = false;
 SWEeprom eepromdata;
 
 String apList;
@@ -354,18 +358,19 @@ void loop()
     if (rotaryEncIButtonVal && rotaryButton.getState() ==HIGH) {
         Serial.print(F("\ttime: "));
         Serial.println(millis()-timeButton);
+        button_pressed = false;
     }
-
-    if (rotaryButton.getState() ==LOW && (millis()-timeButton > BREATH_TIMEOUT)) {
-        long offStatus[4];
-        int i;
-        for (i=0; i<4 ; i++){
-            offStatus[i] = 0;
-        }
-        offStatus[ST_LEDS]= -1;
-        updateLED(offStatus);
-        breath_start = true;
-    }
+    /*
+    if (rotaryEncIButtonVal && rotaryButton.getState() ==LOW && (millis()-timeButton > DEMO_TIME) && (status[ST_START] == 0) && (status[ST_LENGTH] == 1)) {
+        //start demo mode
+        Serial.print(F(" (start): "));
+        Serial.print(status[ST_START]);
+        Serial.print(F(" (length): "));
+        Serial.print(status[ST_LENGTH]);
+        
+        Serial.print(F(" Demo mode time: "));
+        Serial.println(millis()-timeButton);
+    } else */
 
     if (rotaryEncIButtonVal && rotaryButton.getState() ==LOW) {
         // back to on state
@@ -376,7 +381,8 @@ void loop()
         barMenu.setState(barMenu.getState() +1);
         time0 = millis();
         doneTimeout = false;
-        doneTimeout0 = false;        
+        doneTimeout0 = false;
+        button_pressed = true;        
         timeButton = millis();
         menu = barMenu.getState();
         rotaryEncNewPosition = status[menu];
@@ -384,8 +390,20 @@ void loop()
         Serial.print(millis()-timeButton);
         Serial.print(F("\tmenu: "));
         Serial.println(menu);
+    } 
+    if (button_pressed && rotaryButton.getState() ==LOW && (millis()-timeButton > BREATH_TIMEOUT && !breath_start)) {
+        Serial.print(F("Standby mode time: "));
+        Serial.println(millis()-timeButton);
+        long offStatus[4];
+        int i;
+        for (i=0; i<4 ; i++){
+            offStatus[i] = 0;
+        }
+        offStatus[ST_LEDS]= -1;
+        updateLED(offStatus);
+        breath_start = true;
     }
-
+    
     //Serial.println(rotaryButton.onChange());
 
     menu = barMenu.getState();
