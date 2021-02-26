@@ -30,10 +30,10 @@
 
 #define PIXEL_PIN  14 // D4 Blue      datapin of the neo pixel 
 
-#define DESKLIGHT_VERSION "3.1"
+#define DESKLIGHT_VERSION "3.1.1"
 
-#define DEBUG
-//#undef DEBUG
+//#define DEBUG
+#undef DEBUG
 
 const char* PARAM_HOSTNAME = "hostname";
 const char* PARAM_SSID     = "ssid";
@@ -251,7 +251,7 @@ void setup()
 
     if (inSTAmode) {
         server.on("/",  handleRoot);
-        server.on("/settings", HTTP_POST, handleRootAP);
+        server.on("/settings",  handleRootAP);
         server.on("/off",  handleOff);
     } else {
         setupAPmode();

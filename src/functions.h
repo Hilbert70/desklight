@@ -9,6 +9,7 @@
 #define MAXMODES 6
 #define MAXLIGHT 4095
 
+// function protypes
 long StrtoLong(String str);
 void handleStart(long *start, long length);
 void handleLength(long *start,long *length, long increment);
