@@ -19,4 +19,4 @@ job:
   tags:
     - platformio
   stage: test
-  script: "pio run -e <ID_1> -e <ID_2> -e <ID_N>"
+  script: "pio run"
