@@ -1,0 +1,199 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:switches
+LIBS:relays
+LIBS:motors
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Q_PMOS_GDS Q?
+U 1 1 5ED3D48C
+P 1550 1750
+F 0 "Q?" H 1750 1800 50  0000 L CNN
+F 1 "Q_PMOS_GDS" H 1750 1700 50  0000 L CNN
+F 2 "" H 1750 1850 50  0001 C CNN
+F 3 "" H 1550 1750 50  0001 C CNN
+	1    1550 1750
+	1    0    0    1   
+$EndComp
+$Comp
+L 2N7000 Q?
+U 1 1 5ED3D5D1
+P 1250 1950
+F 0 "Q?" H 1450 2025 50  0000 L CNN
+F 1 "2N7000" H 1450 1950 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-92_Molded_Narrow" H 1450 1875 50  0001 L CIN
+F 3 "" H 1250 1950 50  0001 L CNN
+	1    1250 1950
+	1    0    0    -1  
+$EndComp
+$Comp
+L R R?
+U 1 1 5ED3D63E
+P 1350 1600
+F 0 "R?" V 1430 1600 50  0000 C CNN
+F 1 "1K" V 1350 1600 50  0000 C CNN
+F 2 "" V 1280 1600 50  0001 C CNN
+F 3 "" H 1350 1600 50  0001 C CNN
+	1    1350 1600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1650 1550 1650 1450
+Wire Wire Line
+	1650 1450 1350 1450
+$Comp
+L GNDD #PWR?
+U 1 1 5ED3D6A8
+P 1350 2150
+F 0 "#PWR?" H 1350 1900 50  0001 C CNN
+F 1 "GNDD" H 1350 2025 50  0000 C CNN
+F 2 "" H 1350 2150 50  0001 C CNN
+F 3 "" H 1350 2150 50  0001 C CNN
+	1    1350 2150
+	1    0    0    -1  
+$EndComp
+$Comp
+L VCC #PWR?
+U 1 1 5ED3D6C2
+P 1650 1450
+F 0 "#PWR?" H 1650 1300 50  0001 C CNN
+F 1 "VCC" H 1650 1600 50  0000 C CNN
+F 2 "" H 1650 1450 50  0001 C CNN
+F 3 "" H 1650 1450 50  0001 C CNN
+	1    1650 1450
+	1    0    0    -1  
+$EndComp
+$Comp
+L LED_ALT D?
+U 1 1 5ED3D71F
+P 1650 2200
+F 0 "D?" H 1650 2300 50  0000 C CNN
+F 1 "LED_ALT" H 1650 2100 50  0000 C CNN
+F 2 "" H 1650 2200 50  0001 C CNN
+F 3 "" H 1650 2200 50  0001 C CNN
+	1    1650 2200
+	0    -1   -1   0   
+$EndComp
+$Comp
+L LED_ALT D?
+U 1 1 5ED3D782
+P 1650 2500
+F 0 "D?" H 1650 2600 50  0000 C CNN
+F 1 "LED_ALT" H 1650 2400 50  0000 C CNN
+F 2 "" H 1650 2500 50  0001 C CNN
+F 3 "" H 1650 2500 50  0001 C CNN
+	1    1650 2500
+	0    -1   -1   0   
+$EndComp
+$Comp
+L LED_ALT D?
+U 1 1 5ED3D810
+P 1650 2800
+F 0 "D?" H 1650 2900 50  0000 C CNN
+F 1 "LED_ALT" H 1650 2700 50  0000 C CNN
+F 2 "" H 1650 2800 50  0001 C CNN
+F 3 "" H 1650 2800 50  0001 C CNN
+	1    1650 2800
+	0    -1   -1   0   
+$EndComp
+$Comp
+L LED_ALT D?
+U 1 1 5ED3D85F
+P 1650 3100
+F 0 "D?" H 1650 3200 50  0000 C CNN
+F 1 "LED_ALT" H 1650 3000 50  0000 C CNN
+F 2 "" H 1650 3100 50  0001 C CNN
+F 3 "" H 1650 3100 50  0001 C CNN
+	1    1650 3100
+	0    -1   -1   0   
+$EndComp
+$Comp
+L LED_ALT D?
+U 1 1 5ED3D892
+P 1650 3400
+F 0 "D?" H 1650 3500 50  0000 C CNN
+F 1 "LED_ALT" V 1650 3300 50  0000 C CNN
+F 2 "" H 1650 3400 50  0001 C CNN
+F 3 "" H 1650 3400 50  0001 C CNN
+	1    1650 3400
+	0    -1   -1   0   
+$EndComp
+$Comp
+L LED_ALT D?
+U 1 1 5ED3D9A6
+P 1650 3700
+F 0 "D?" H 1650 3800 50  0000 C CNN
+F 1 "LED_ALT" H 1650 3600 50  0000 C CNN
+F 2 "" H 1650 3700 50  0001 C CNN
+F 3 "" H 1650 3700 50  0001 C CNN
+	1    1650 3700
+	0    -1   -1   0   
+$EndComp
+$Comp
+L IRF540N Q?
+U 1 1 5ED3D9EF
+P 1550 4250
+F 0 "Q?" H 1800 4325 50  0000 L CNN
+F 1 "IRF540N" H 1800 4250 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-220_Vertical" H 1800 4175 50  0001 L CIN
+F 3 "" H 1550 4250 50  0001 L CNN
+	1    1550 4250
+	1    0    0    -1  
+$EndComp
+$Comp
+L GNDD #PWR?
+U 1 1 5ED3DA49
+P 1650 4450
+F 0 "#PWR?" H 1650 4200 50  0001 C CNN
+F 1 "GNDD" H 1650 4325 50  0000 C CNN
+F 2 "" H 1650 4450 50  0001 C CNN
+F 3 "" H 1650 4450 50  0001 C CNN
+	1    1650 4450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1650 1950 1650 2050
+Wire Wire Line
+	1650 3850 1650 4050
+$EndSCHEMATC
